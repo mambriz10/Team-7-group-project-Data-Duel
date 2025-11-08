@@ -1,0 +1,16 @@
+/* Minimal styles shared across pages */
+body { font-family: Arial, sans-serif; background: #fafafa; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+main.page { flex: 1; padding: 32px; display: grid; place-items: center; text-align: center; }
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; width: min(680px, 92%); box-shadow: 0 6px 18px rgba(17,24,39,.06); }
+h1 { margin: 0 0 8px; font-size: 28px; }
+p { margin: 0 0 16px; color: #666; }
+.btn { display: inline-block; padding: 10px 14px; border-radius: 999px; text-decoration: none; border: 1px solid #e5e7eb; background: #fff; color: #111; font-weight: 600; }
+.btn.primary { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+nav.tabs { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e5e7eb; }
+nav.tabs .row { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 720px; margin: 0 auto; }
+nav.tabs a { display: grid; place-items: center; gap: 4px; padding: 12px 0; text-decoration: none; color: #888; font-size: 14px; }
+nav.tabs a.active { color: #4f46e5; font-weight: 700; }
+.icon { font-size: 18px; }
+
+/* Focus visibility for keyboard users */
+:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 8px; }

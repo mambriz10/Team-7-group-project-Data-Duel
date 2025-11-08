@@ -1,0 +1,105 @@
+<!-- ======================= settings.html ======================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings – DataDuels</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .settings { text-align:left; display:grid; gap:16px; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid #e5e7eb; }
+    .row:last-child { border-bottom:none; }
+    .row label { font-weight:600; }
+    .hint { color:#666; font-size:12px; margin-top:4px; }
+    .group { padding:4px 0; }
+    .switch { width:48px; height:28px; border-radius:999px; border:1px solid #e5e7eb; position:relative; background:#fff; cursor:pointer; }
+    .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#ccc; transition:transform .2s ease; }
+    .switch[aria-checked="true"] { background:#4f46e5; border-color:#4f46e5; }
+    .switch[aria-checked="true"]::after { background:#fff; transform:translateX(20px); }
+    .inline { display:flex; align-items:center; gap:8px; }
+    select, button { padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card" aria-label="Settings">
+      <h1>Settings</h1>
+      <p>Top-level page stub for <strong>Settings</strong>. Controls are placeholders.</p>
+
+      <div class="settings" role="form" aria-label="Settings form">
+        <div class="group">
+          <div class="row">
+            <div>
+              <label for="theme">Theme</label>
+              <div class="hint">Choose light or dark appearance</div>
+            </div>
+            <div class="inline">
+              <select id="theme" name="theme">
+                <option value="light" selected>Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="row">
+            <div>
+              <label for="units">Units</label>
+              <div class="hint">Switch between Metric and Imperial</div>
+            </div>
+            <div class="inline">
+              <select id="units" name="units">
+                <option value="metric" selected>Metric (km)</option>
+                <option value="imperial">Imperial (mi)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="row">
+            <div>
+              <label>Notifications</label>
+              <div class="hint">Weekly summary + challenge updates</div>
+            </div>
+            <button id="notif" class="switch" role="switch" aria-checked="false" aria-label="Toggle notifications"></button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="row">
+            <div>
+              <label>Data Import</label>
+              <div class="hint">Placeholder for Strava import/auth</div>
+            </div>
+            <button class="btn" disabled aria-disabled="true">Connect Strava (soon)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom tabs: Profile, Settings, Home, Social, Routes -->
+  <nav class="tabs" aria-label="Primary navigation">
+    <div class="row">
+      <a href="profile.html" aria-label="Profile"><div class="icon">👤</div><div>Profile</div></a>
+      <a href="settings.html" aria-label="Settings" class="active"><div class="icon">⚙️</div><div>Settings</div></a>
+      <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
+      <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+    </div>
+  </nav>
+
+  <script src="script.js"></script>
+  <script>
+    // Tiny demo behavior for the fake switch.
+    const sw = document.getElementById('notif');
+    sw?.addEventListener('click', () => {
+      const on = sw.getAttribute('aria-checked') === 'true';
+      sw.setAttribute('aria-checked', String(!on));
+    });
+  </script>
+</body>
+</html>
