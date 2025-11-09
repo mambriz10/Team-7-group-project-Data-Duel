@@ -46,6 +46,8 @@ class Person:
         self.weekly_challenge = 0
         self.badges = []
 
+        self.rank = 0 # will be their index in leaderboard list + 1
+
     # Setters for user customizable options
     def change_name(self, new_name):
         self.__name = new_name
