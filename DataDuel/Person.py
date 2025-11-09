@@ -42,7 +42,7 @@ class Person:
         self.baseline_moving_time = self.total_moving_time / self.total_workouts
 
         # Placeholders for future objects
-        self.improvement_score = 10
+        self.score = Score()
         self.weekly_challenge = 0
         self.badges = []
 
