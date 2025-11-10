@@ -11,6 +11,15 @@ nav.tabs .row { display: grid; grid-template-columns: repeat(5, 1fr); max-width:
 nav.tabs a { display: grid; place-items: center; gap: 4px; padding: 12px 0; text-decoration: none; color: #888; font-size: 14px; }
 nav.tabs a.active { color: #4f46e5; font-weight: 700; }
 .icon { font-size: 18px; }
+dialog { border: none; border-radius: 12px; width: min(480px, 92%); box-shadow: 0 10px 30px rgba(0,0,0,.15); }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+.form { display:grid; gap:10px; }
+.form label { font-weight:600; }
+.form input, .form textarea, .form select { width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px; }
+.row-actions { display:flex; gap:8px; }
+.inline { display:flex; align-items:center; gap:8px; }
+.hint.meta { color:#666; font-size:12px; }
+.section-title { font-size:16px; margin:16px 0 8px; }
 
 /* Focus visibility for keyboard users */
 :focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 8px; }
