@@ -17,7 +17,7 @@ class challenges:
 
     # Basic function to get points based on 3 bools. Subject to change
     # assumes the challenge variables have been checked and updated correctly
-    def getPoints(self):
+    def get_points(self):
         points = 0
 
         points += 5 if self.first_challenge else 0

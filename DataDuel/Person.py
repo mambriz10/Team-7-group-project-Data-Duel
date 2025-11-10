@@ -43,9 +43,9 @@ class Person:
         self.baseline_moving_time = self.total_moving_time / self.total_workouts
 
         # Placeholders for future objects
-        self.score = Score()
-        self.weekly_challenge = challenges()
-        self.badges = []
+        self.score = Score.Score()
+        self.weekly_challenges = challenges.challenges()
+        self.badges = 5 # dummy value, should be like challenges instead.
 
         self.rank = 0 # will be their index in leaderboard list + 1
 

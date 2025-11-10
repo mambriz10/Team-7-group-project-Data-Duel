@@ -22,10 +22,10 @@ class Score:
         self.previous_score = self.score
         scale = 0
 
-        scale += 1 if average_speed > base_average_speed else -1
-        scale += 1 if max_speed > base_max_speed else -1
-        scale += 1 if distance > base_distance else -1
-        scale += 1 if moving_time > base_moving_time else -1
+        scale += 1 if average_speed >= base_average_speed else -1
+        scale += 1 if max_speed >= base_max_speed else -1
+        scale += 1 if distance >= base_distance else -1
+        scale += 1 if moving_time >= base_moving_time else -1
 
         if scale > 0:
             self.score += (scale + badge_points + challenge_points + streak)
