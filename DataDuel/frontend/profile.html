@@ -1,4 +1,4 @@
-<!-- ======================= profile.html ======================= -->
+<!-- ======================= profile.html (updated) ======================= -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,29 +6,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Profile – DataDuels</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .row { display:flex; align-items:center; justify-content:center; gap:16px; margin:12px 0; }
+    .statsline { display:flex; gap:24px; justify-content:center; margin:16px 0; }
+    .pill { display:inline-block; padding:10px 14px; border:1px solid #e5e7eb; border-radius:999px; background:#fff; font-weight:600; text-decoration:none; }
+    .group { display:grid; gap:10px; margin-top:16px; }
+  </style>
 </head>
 <body>
   <main class="page">
     <section class="card" aria-label="Profile">
       <h1>Profile</h1>
-      <p>Top-level page stub for <strong>Profile</strong>. We can wire real data later.</p>
-      <div style="display:flex; gap:16px; align-items:center; justify-content:center; margin-top:12px;">
-        <img src="https://api.dicebear.com/7.x/identicon/svg?seed=runner" alt="Avatar" width="64" height="64" style="border-radius:50%; border:1px solid #e5e7eb;"/>
+      <p>Top-level page for your account.</p>
+
+      <div class="row">
+        <img src="https://api.dicebear.com/7.x/identicon/svg?seed=runner" 
+             alt="Avatar" width="64" height="64"
+             style="border-radius:50%; border:1px solid #e5e7eb;" />
         <div style="text-align:left;">
           <div style="font-weight:700;">Runner Name</div>
-          <div style="color:#666; font-size:14px;">@handle • Austin, TX</div>
+          <div style="color:#666; font-size:14px;">@handle • Chicago, IL</div>
+          <a class="btn" href="profile-edit.html">Edit Profile</a>
         </div>
       </div>
-      <div style="display:flex; gap:24px; justify-content:center; margin:16px 0;">
+
+
+      <div class="statsline">
         <div><div style="font-weight:700;">23</div><div style="color:#666; font-size:12px;">Runs</div></div>
         <div><div style="font-weight:700;">118 km</div><div style="color:#666; font-size:12px;">Distance</div></div>
         <div><div style="font-weight:700;">4.9</div><div style="color:#666; font-size:12px;">Avg Pace</div></div>
       </div>
-      <a class="btn" href="#" aria-disabled="true" onclick="return false;">Edit Profile (placeholder)</a>
+
+      <div class="group" role="navigation" aria-label="Profile subpages">
+        <a class="pill" href="profile-challenges.html">Challenges & Badges →</a>
+        <a class="pill" href="profile-stats.html">Stats →</a>
+      </div>
     </section>
   </main>
 
-  <!-- Bottom tabs: Profile, Settings, Home, Social, Routes -->
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
       <a href="profile.html" aria-label="Profile" class="active"><div class="icon">👤</div><div>Profile</div></a>
@@ -42,3 +57,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+

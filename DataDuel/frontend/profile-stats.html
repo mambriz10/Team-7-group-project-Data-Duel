@@ -1,0 +1,52 @@
+
+<!-- ======================= profile-stats.html ======================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stats – DataDuels</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { width: min(720px, 92%); margin: 0 auto; text-align:left; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .tile { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; }
+    .k { font-size:12px; color:#666; }
+    .v { font-weight:700; font-size:20px; }
+    @media (max-width: 520px){ .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card wrap" aria-label="Stats">
+      <h1>Stats</h1>
+      <p>Your key metrics and streaks.</p>
+
+      <div class="grid" role="list">
+        <div class="tile" role="listitem"><div class="k">Total Runs</div><div class="v">23</div></div>
+        <div class="tile" role="listitem"><div class="k">Total Distance</div><div class="v">118 km</div></div>
+        <div class="tile" role="listitem"><div class="k">Avg Pace</div><div class="v">4.9 min/km</div></div>
+        <div class="tile" role="listitem"><div class="k">Best 5K</div><div class="v">24:32</div></div>
+        <div class="tile" role="listitem"><div class="k">Weekly Streak</div><div class="v">3 weeks</div></div>
+        <div class="tile" role="listitem"><div class="k">Consistency</div><div class="v">4/3 sessions</div></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <a class="btn" href="profile.html">← Back to Profile</a>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Primary navigation">
+    <div class="row">
+      <a href="profile.html" aria-label="Profile" class="active"><div class="icon">👤</div><div>Profile</div></a>
+      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
+      <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
+      <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+    </div>
+  </nav>
+
+  <script src="script.js"></script>
+</body>
+</html>

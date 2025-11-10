@@ -1,0 +1,59 @@
+
+<!-- ======================= profile-challenges.html ======================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Challenges & Badges – DataDuels</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { width: min(720px, 92%); margin: 0 auto; text-align:left; }
+    .section { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; }
+    .section + .section { margin-top:12px; }
+    .item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #e5e7eb; }
+    .item:last-child { border-bottom:none; }
+    .badge { display:inline-block; padding:4px 8px; border-radius:999px; border:1px solid #e5e7eb; font-size:12px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card wrap" aria-label="Challenges and Badges">
+      <h1>Challenges & Badges</h1>
+      <p>Weekly challenges and lifetime badges.</p>
+
+      <div class="section" aria-label="Weekly Challenges">
+        <h2 style="font-size:16px; margin:0 0 8px;">Weekly Challenges</h2>
+        <div class="item"><div>Run 3 times this week</div><div class="badge">+5 pts</div></div>
+        <div class="item"><div>Total distance ≥ 20 km</div><div class="badge">+5 pts</div></div>
+        <div class="item"><div>Set 1 segment PR</div><div class="badge">+5 pts</div></div>
+        <p style="color:#666; font-size:12px; margin-top:8px;">(Placeholders – you’ll wire these to real data later.)</p>
+      </div>
+
+      <div class="section" aria-label="Badges">
+        <h2 style="font-size:16px; margin:8px 0;">Badges</h2>
+        <div class="item"><div>First 5K</div><div class="badge">Earned</div></div>
+        <div class="item"><div>10 Runs in a Month</div><div class="badge">Locked</div></div>
+        <div class="item"><div>100 km Total</div><div class="badge">Locked</div></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <a class="btn" href="profile.html">← Back to Profile</a>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Primary navigation">
+    <div class="row">
+      <a href="profile.html" aria-label="Profile" class="active"><div class="icon">👤</div><div>Profile</div></a>
+      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
+      <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
+      <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+    </div>
+  </nav>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
