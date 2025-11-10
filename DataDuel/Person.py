@@ -7,6 +7,7 @@
 # data from api call
 import Score
 import challenges
+import badges
 
 class Person:
     def __init__(self):
@@ -45,7 +46,7 @@ class Person:
         # Placeholders for future objects
         self.score = Score.Score()
         self.weekly_challenges = challenges.challenges()
-        self.badges = 5 # dummy value, should be like challenges instead.
+        self.badges = badges.badges() # dummy value, should be like challenges instead.
 
         self.rank = 0 # will be their index in leaderboard list + 1
 
