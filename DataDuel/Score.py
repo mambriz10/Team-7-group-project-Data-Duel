@@ -28,7 +28,6 @@ class Score:
         scale += 1 if moving_time >= base_moving_time else -1
 
         if scale > 0:
-            print("DEBUG: IN SCALE > 0")
             self.score += (scale + badge_points + challenge_points + streak)
 
             if self.score - self.previous_score > 0:
@@ -37,8 +36,6 @@ class Score:
             self.score += self.calculate_improvement_bonus()
 
         elif scale < 0:
-            print("DEBUG: IN SCALE <>> 0")
-
             self.score -= scale * scale
             self.score += ceil((badge_points + challenge_points + streak) * .5)
 
@@ -48,8 +45,6 @@ class Score:
             self.score += ceil(self.calculate_improvement_bonus() * .5)
 
         else:
-            print("DEBUG: IN SCALE == 0")
-
             self.score += (badge_points + challenge_points + streak)
 
             if self.score - self.previous_score > 0:
