@@ -6,6 +6,7 @@
 # Another way to go is to create this object after a connection to strava has been made and we getc call it with
 # data from api call
 import Score
+import challenges
 
 class Person:
     def __init__(self):
@@ -43,7 +44,7 @@ class Person:
 
         # Placeholders for future objects
         self.score = Score()
-        self.weekly_challenge = 0
+        self.weekly_challenge = challenges()
         self.badges = []
 
         self.rank = 0 # will be their index in leaderboard list + 1
