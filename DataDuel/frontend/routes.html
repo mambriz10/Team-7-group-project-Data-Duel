@@ -1,0 +1,79 @@
+<!-- ======================= routes.html ======================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Routes – DataDuels</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .routes { width: min(720px, 92%); margin: 0 auto; text-align:left; }
+    .toolbar { display:flex; gap:8px; justify-content:center; margin-bottom:12px; }
+    .route { display:flex; gap:12px; align-items:center; padding:12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
+    .route + .route { margin-top:12px; }
+    .thumb { width:96px; height:72px; border-radius:10px; border:1px solid #e5e7eb; background: linear-gradient(135deg, #dbeafe, #f5f3ff); display:grid; place-items:center; color:#4f46e5; font-weight:700; }
+    .meta { color:#666; font-size:12px; }
+    .spaced { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card routes" aria-label="Routes">
+      <h1>Routes</h1>
+      <p>Saved routes (static placeholders for now). Later we can hook to Strava or local JSON.</p>
+
+      <div class="toolbar">
+        <a class="btn" href="#" aria-disabled="true" onclick="return false;">Create Route</a>
+        <a class="btn" href="#" aria-disabled="true" onclick="return false;">Import from Strava</a>
+      </div>
+
+      <div class="route">
+        <div class="thumb">5K</div>
+        <div style="flex:1;">
+          <div class="spaced">
+            <div style="font-weight:700;">Campus Loop</div>
+            <a class="btn" href="#" aria-disabled="true" onclick="return false;">Start Run</a>
+          </div>
+          <div class="meta">Distance: 5.0 km • Elev: +42 m • Last: 26:12</div>
+        </div>
+      </div>
+
+      <div class="route">
+        <div class="thumb">10K</div>
+        <div style="flex:1;">
+          <div class="spaced">
+            <div style="font-weight:700;">River Trail</div>
+            <a class="btn" href="#" aria-disabled="true" onclick="return false;">Start Run</a>
+          </div>
+          <div class="meta">Distance: 10.2 km • Elev: +95 m • Last: 55:07</div>
+        </div>
+      </div>
+
+      <div class="route">
+        <div class="thumb">HM</div>
+        <div style="flex:1;">
+          <div class="spaced">
+            <div style="font-weight:700;">City Half</div>
+            <a class="btn" href="#" aria-disabled="true" onclick="return false;">Start Run</a>
+          </div>
+          <div class="meta">Distance: 21.1 km • Elev: +210 m • Last: 1:56:40</div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Bottom tabs: Profile, Settings, Home, Social, Routes -->
+  <nav class="tabs" aria-label="Primary navigation">
+    <div class="row">
+      <a href="profile.html" aria-label="Profile"><div class="icon">👤</div><div>Profile</div></a>
+      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
+      <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
+      <a href="routes.html" aria-label="Routes" class="active"><div class="icon">🗺️</div><div>Routes</div></a>
+    </div>
+  </nav>
+
+  <script src="script.js"></script>
+</body>
+</html>
