@@ -4,17 +4,13 @@ class badges:
         # Maybe in a function that also checks for badges and streaks
         self.moving_time = False
         self.distance = False
-        self.max_watts = False
         self.max_speed = False
 
-        self.first_badge = "First"
-        self.second_badge = "Second"
-        self.third_badge = "Third"
 
         # They do not have to be the same challenge, it's just default values right now
-        self.first_description = "Run 3 miles"
-        self.second_description = "Run 5 miles"
-        self.third_description = "Run 10 miles"
+        self.first_description = "Move for 1 hour"
+        self.second_description = "Max Speed > 10"
+        self.third_description = "Hit Elapse Time > 100"
 
     # Basic function to get points based on 3 bools. Subject to change
     # assumes the challenge variables have been checked and updated correctly
@@ -23,7 +19,6 @@ class badges:
 
         points += 5 if self.moving_time else 0
         points += 5 if self.distance else 0
-        points += 5 if self.max_watts else 0
         points += 5 if self.max_speed else 0
 
         return points
