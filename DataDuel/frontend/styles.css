@@ -1,25 +1,238 @@
-/* Minimal styles shared across pages */
-body { font-family: Arial, sans-serif; background: #fafafa; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-main.page { flex: 1; padding: 32px; display: grid; place-items: center; text-align: center; }
-.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; width: min(680px, 92%); box-shadow: 0 6px 18px rgba(17,24,39,.06); }
-h1 { margin: 0 0 8px; font-size: 28px; }
-p { margin: 0 0 16px; color: #666; }
-.btn { display: inline-block; padding: 10px 14px; border-radius: 999px; text-decoration: none; border: 1px solid #e5e7eb; background: #fff; color: #111; font-weight: 600; }
-.btn.primary { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-nav.tabs { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e5e7eb; }
-nav.tabs .row { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 720px; margin: 0 auto; }
-nav.tabs a { display: grid; place-items: center; gap: 4px; padding: 12px 0; text-decoration: none; color: #888; font-size: 14px; }
-nav.tabs a.active { color: #4f46e5; font-weight: 700; }
-.icon { font-size: 18px; }
-dialog { border: none; border-radius: 12px; width: min(480px, 92%); box-shadow: 0 10px 30px rgba(0,0,0,.15); }
-dialog::backdrop { background: rgba(0,0,0,.35); }
-.form { display:grid; gap:10px; }
-.form label { font-weight:600; }
-.form input, .form textarea, .form select { width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px; }
-.row-actions { display:flex; gap:8px; }
-.inline { display:flex; align-items:center; gap:8px; }
-.hint.meta { color:#666; font-size:12px; }
-.section-title { font-size:16px; margin:16px 0 8px; }
+/* =========================
+   THEME TOKENS
+   ========================= */
+:root {
+  --bg: #fafafa;
+  --panel: #ffffff;
+  --ink: #111827;    /* main text */
+  --muted: #666666;  /* secondary text */
+  --border: #e5e7eb;
+  --brand: #4f46e5;
+  --shadow: 0 6px 18px rgba(17,24,39,.06);
+}
 
-/* Focus visibility for keyboard users */
-:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 8px; }
+:root[data-theme="dark"] {
+  --bg: #0b0f17;
+  --panel: #111827;
+  --ink: #f3f4f6;     /* brighter for titles/text in dark */
+  --muted: #a1a1aa;   /* readable secondary on dark */
+  --border: #2a2f3d;
+  --brand: #8b9dff;
+  --shadow: 0 6px 18px rgba(0,0,0,.45);
+}
+
+/* Optional: smooth theme transition (respects reduced motion) */
+* { transition: color .15s linear, background-color .15s linear, border-color .15s linear; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* =========================
+   BASE LAYOUT
+   ========================= */
+body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main.page {
+  flex: 1;
+  padding: 32px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  width: min(680px, 92%);
+  box-shadow: var(--shadow);
+}
+
+/* =========================
+   TYPOGRAPHY
+   ========================= */
+h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  color: var(--ink);  /* ensure titles adapt to theme */
+}
+
+h2, h3, h4, h5, h6 { color: var(--ink); }
+
+p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+.btn {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.btn.primary {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+/* Dark-specific lift for neutral buttons (better contrast) */
+[data-theme="dark"] .btn {
+  background: #1d2330;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+/* =========================
+   TABS (BOTTOM NAV)
+   ========================= */
+nav.tabs {
+  position: sticky;
+  bottom: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}
+
+nav.tabs .row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+nav.tabs a {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  padding: 12px 0;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+nav.tabs a.active {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.icon { font-size: 18px; }
+
+/* =========================
+   DIALOGS & FORMS
+   ========================= */
+dialog {
+  border: none;
+  border-radius: 12px;
+  width: min(480px, 92%);
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  background: var(--panel);
+  color: var(--ink);
+}
+
+dialog::backdrop { background: rgba(0,0,0,.35); }
+
+.form { display: grid; gap: 10px; }
+.form label { font-weight: 600; }
+
+.form input,
+.form textarea,
+.form select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.row-actions { display: flex; gap: 8px; }
+.inline { display: flex; align-items: center; gap: 8px; }
+.hint.meta { color: var(--muted); font-size: 12px; }
+.section-title { font-size: 16px; margin: 16px 0 8px; }
+
+/* =========================
+   DARK THEME TUNING
+   ========================= */
+
+/* Make panel headings and list titles dimmer in dark mode for readability */
+[data-theme="dark"] .route div[style*="font-weight:700"],
+[data-theme="dark"] .leaderboard .name,
+[data-theme="dark"] .leaderboard td:first-child {
+  color: #d1d5db !important; /* soft neutral, not blinding white */
+}
+
+/* Optional: tweak meta text for better contrast */
+[data-theme="dark"] .meta2 {
+  color: #020406;
+}
+
+/* Optional: soften contrast on bright route thumb labels */
+[data-theme="dark"] .thumb {
+  background: linear-gradient(135deg, #1e293b, #374151);
+  color: #c7d2fe; /* pale lavender-blue */
+}
+
+/* =========================
+   FIX: Leaderboard highlight legibility
+   ========================= */
+
+/* Make sure leaderboard text is readable */
+.leaderboard th,
+.leaderboard td {
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+/* Highlight row for "You" (2nd row or .you class) */
+.leaderboard tr.you,
+.leaderboard tr:nth-child(2) {
+  background-color: #e9e0ff !important;  /* light lavender for light mode */
+  color: #111 !important;
+}
+
+/* Dark theme version — deep slate with lighter text */
+[data-theme="dark"] .leaderboard tr.you,
+[data-theme="dark"] .leaderboard tr:nth-child(2) {
+  background-color: #2a2f3d !important;
+  color: #f3f4f6 !important;  /* bright text for dark bg */
+}
+
+/* Ensure text inside cells stays readable */
+[data-theme="dark"] .leaderboard tr.you td,
+[data-theme="dark"] .leaderboard tr:nth-child(2) td {
+  color: #f3f4f6 !important;
+}
+
+
+/* ========== Routes ========== */
+.route-name { font-weight: 700; color: var(--ink); }
+/* A touch darker than pure white in dark mode for easier reading */
+[data-theme="dark"] .route-name { color: #0a0b10 !important; }
+
+/* Meta stays clearly secondary in dark mode */
+[data-theme="dark"] .meta { color: #e8eaed; }
+
+
+/* =========================
+   ACCESSIBILITY
+   ========================= */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

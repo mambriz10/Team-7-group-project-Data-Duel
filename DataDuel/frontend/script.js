@@ -8,3 +8,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+
+(function () {
+  const KEY = 'dd_theme';
+
+  function systemPref() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark' : 'light';
+  }
+
+  function applyTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem(KEY, t); } catch {}
+  }
+
+  // Initialize on every page
+  const saved = (() => { try { return localStorage.getItem(KEY); } catch { return null; } })();
+  applyTheme(saved || systemPref());
+
+  // Wire the Settings dropdown if present
+  const select = document.getElementById('theme');
+  if (select) {
+    select.value = document.documentElement.dataset.theme;
+    select.addEventListener('change', () => applyTheme(select.value));
+  }
+})();

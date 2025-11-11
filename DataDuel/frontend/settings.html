@@ -46,37 +46,23 @@
         <div class="group">
           <div class="row">
             <div>
-              <label for="units">Units</label>
-              <div class="hint">Switch between Metric and Imperial</div>
+              <label for="privacy">Privacy</label>
+              <div class="hint">Hide your name from others</div>
             </div>
-            <div class="inline">
-              <select id="units" name="units">
-                <option value="metric" selected>Metric (km)</option>
-                <option value="imperial">Imperial (mi)</option>
-              </select>
-            </div>
+            <button id="privacy" class="switch" role="switch" aria-checked="false" aria-label="Toggle privacy setting"></button>
           </div>
         </div>
 
         <div class="group">
           <div class="row">
             <div>
-              <label>Notifications</label>
-              <div class="hint">Weekly summary + challenge updates</div>
+              <label>Edit Profile</label>
+              <div class="hint">Change your profile information</div>
             </div>
-            <button id="notif" class="switch" role="switch" aria-checked="false" aria-label="Toggle notifications"></button>
+            <a class="btn" href="profile-edit.html">Edit</a>
           </div>
         </div>
 
-        <div class="group">
-          <div class="row">
-            <div>
-              <label>Data Import</label>
-              <div class="hint">Placeholder for Strava import/auth</div>
-            </div>
-            <button class="btn" disabled aria-disabled="true">Connect Strava (soon)</button>
-          </div>
-        </div>
       </div>
     </section>
   </main>
@@ -95,7 +81,7 @@
   <script src="script.js"></script>
   <script>
     // Tiny demo behavior for the fake switch.
-    const sw = document.getElementById('notif');
+    const sw = document.getElementById('privacy');
     sw?.addEventListener('click', () => {
       const on = sw.getAttribute('aria-checked') === 'true';
       sw.setAttribute('aria-checked', String(!on));
