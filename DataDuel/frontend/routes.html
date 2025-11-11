@@ -8,72 +8,178 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .routes { width: min(720px, 92%); margin: 0 auto; text-align:left; }
-    .toolbar { display:flex; gap:8px; justify-content:center; margin-bottom:12px; }
+    .toolbar { display:flex; gap:8px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
+    .filters { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+    .filters select, .filters input { padding:8px; border:1px solid #e5e7eb; border-radius:8px; }
     .route { display:flex; gap:12px; align-items:center; padding:12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
     .route + .route { margin-top:12px; }
-    .thumb { width:96px; height:72px; border-radius:10px; border:1px solid #e5e7eb; background: linear-gradient(135deg, #dbeafe, #f5f3ff); display:grid; place-items:center; color:#4f46e5; font-weight:700; }
+    .thumb { width:96px; height:72px; border-radius:10px; border:1px solid #e5e7eb; background: linear-gradient(135deg, #dbeafe, #f5f3ff); display:grid; place-items:center; color:#4f46e5; font-weight:700; font-size:14px; }
     .meta { color:#666; font-size:12px; }
     .spaced { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .route-name { font-weight:700; }
+    .difficulty-easy { color:#10b981; }
+    .difficulty-moderate { color:#f59e0b; }
+    .difficulty-hard { color:#ef4444; }
   </style>
 </head>
 <body>
   <main class="page">
     <section class="card routes" aria-label="Routes">
       <h1>Routes</h1>
-      <p>Saved routes (static placeholders for now). Later we can hook to Strava or local JSON.</p>
+      <p>Find and explore running routes</p>
 
-      <div class="toolbar">
-        <a class="btn" href="#" aria-disabled="true" onclick="return false;">Create Route</a>
-        <a class="btn" href="#" aria-disabled="true" onclick="return false;">Import from Strava</a>
+      <div class="filters">
+        <select id="distanceFilter">
+          <option value="">All Distances</option>
+          <option value="5">~5 km</option>
+          <option value="8">~8 km</option>
+          <option value="10">~10 km</option>
+        </select>
+        
+        <select id="difficultyFilter">
+          <option value="">All Difficulties</option>
+          <option value="easy">Easy</option>
+          <option value="moderate">Moderate</option>
+          <option value="hard">Hard</option>
+        </select>
+        
+        <select id="surfaceFilter">
+          <option value="">All Surfaces</option>
+          <option value="paved">Paved</option>
+          <option value="trail">Trail</option>
+          <option value="mixed">Mixed</option>
+        </select>
+        
+        <button id="searchBtn" class="btn">Search</button>
+        <button id="clearBtn" class="btn">Show All</button>
       </div>
 
-      <div class="route">
-        <div class="thumb">5K</div>
-        <div style="flex:1;">
-          <div class="spaced">
-            <div class="route-name">Campus Loop</div>
-            <a class="btn" href="#" aria-disabled="true" onclick="return false;">Start Run</a>
-          </div>
-          <div class="meta2">Distance: 5.0 km • Elev: +42 m • Last: 26:12</div>
-        </div>
+      <div id="loading" style="text-align:center; padding:20px;">
+        <p>Loading routes...</p>
       </div>
 
-      <div class="route">
-        <div class="thumb">10K</div>
-        <div style="flex:1;">
-          <div class="spaced">
-            <div class="route-name">River Trail</div>
-            <a class="btn" href="#" aria-disabled="true" onclick="return false;">Start Run</a>
-          </div>
-          <div class="meta2">Distance: 10.2 km • Elev: +95 m • Last: 55:07</div>
-        </div>
+      <div id="routesList" style="display:none;">
+        <!-- Routes populated by JavaScript -->
       </div>
 
-      <div class="route">
-        <div class="thumb">HM</div>
-        <div style="flex:1;">
-          <div class="spaced">
-            <div class="route-name">City Half</div>
-            <a class="btn" href="#" aria-disabled="true" onclick="return false;">Start Run</a>
-          </div>
-          <div class="meta2">Distance: 21.1 km • Elev: +210 m • Last: 1:56:40</div>
-        </div>
+      <div id="noRoutes" style="display:none; text-align:center; padding:20px; color:#666;">
+        <p>No routes found matching your criteria</p>
       </div>
-
     </section>
   </main>
 
-  <!-- Bottom tabs: Profile, Settings, Home, Social, Routes -->
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
-      <a href="profile.html" aria-label="Profile"><div class="icon">👤</div><div>Profile</div></a>
-      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
-      <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
-      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
-      <a href="routes.html" aria-label="Routes" class="active"><div class="icon">🗺️</div><div>Routes</div></a>
+      <a href="profile.html" aria-label="Profile"><div class="icon">Profile</div></a>
+      <a href="settings.html" aria-label="Settings"><div class="icon">Settings</div></a>
+      <a href="index.html" aria-label="Home"><div class="icon">Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">Social</div></a>
+      <a href="routes.html" aria-label="Routes" class="active"><div class="icon">Routes</div></a>
     </div>
   </nav>
 
+  <script src="api.js"></script>
   <script src="script.js"></script>
+  <script>
+    let currentRoutes = [];
+
+    function getDifficultyClass(difficulty) {
+      return `difficulty-${difficulty}`;
+    }
+
+    function renderRoutes(routes) {
+      const container = document.getElementById('routesList');
+      const loading = document.getElementById('loading');
+      const noRoutes = document.getElementById('noRoutes');
+      
+      loading.style.display = 'none';
+      
+      if (!routes || routes.length === 0) {
+        container.style.display = 'none';
+        noRoutes.style.display = 'block';
+        return;
+      }
+      
+      noRoutes.style.display = 'none';
+      container.style.display = 'block';
+      container.innerHTML = '';
+      
+      routes.forEach(route => {
+        const routeEl = document.createElement('div');
+        routeEl.className = 'route';
+        
+        const distLabel = route.distance_km < 7 ? 
+          Math.round(route.distance_km) + 'K' : 
+          Math.round(route.distance_km) + 'K';
+        
+        routeEl.innerHTML = `
+          <div class="thumb">${distLabel}</div>
+          <div style="flex:1;">
+            <div class="spaced">
+              <div>
+                <div class="route-name">${route.name}</div>
+                <div class="meta">${route.description}</div>
+              </div>
+            </div>
+            <div class="meta" style="margin-top:6px;">
+              ${route.distance_km} km (${route.distance_miles} mi) • 
+              Elev: +${route.elevation_gain}m • 
+              <span class="${getDifficultyClass(route.difficulty)}">${route.difficulty}</span> • 
+              ${route.surface} • 
+              ~${route.estimated_time_min} min
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(routeEl);
+      });
+    }
+
+    async function loadAllRoutes() {
+      try {
+        const data = await api.getAllRoutes();
+        currentRoutes = data.routes;
+        renderRoutes(currentRoutes);
+      } catch (error) {
+        console.error('Failed to load routes:', error);
+        document.getElementById('loading').innerHTML = '<p style="color:#ef4444;">Failed to load routes</p>';
+      }
+    }
+
+    async function searchRoutes() {
+      const distance = document.getElementById('distanceFilter').value;
+      const difficulty = document.getElementById('difficultyFilter').value;
+      const surface = document.getElementById('surfaceFilter').value;
+      
+      try {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('routesList').style.display = 'none';
+        
+        const data = await api.searchRoutes(
+          distance ? parseFloat(distance) : null,
+          difficulty || null,
+          surface || null
+        );
+        
+        currentRoutes = data.routes;
+        renderRoutes(currentRoutes);
+      } catch (error) {
+        console.error('Search failed:', error);
+        document.getElementById('loading').innerHTML = '<p style="color:#ef4444;">Search failed</p>';
+      }
+    }
+
+    function clearFilters() {
+      document.getElementById('distanceFilter').value = '';
+      document.getElementById('difficultyFilter').value = '';
+      document.getElementById('surfaceFilter').value = '';
+      loadAllRoutes();
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', searchRoutes);
+    document.getElementById('clearBtn').addEventListener('click', clearFilters);
+
+    loadAllRoutes();
+  </script>
 </body>
 </html>

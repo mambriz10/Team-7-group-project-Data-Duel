@@ -1,0 +1,22 @@
+# DataDuel Backend Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# HTTP requests for Strava API
+requests==2.31.0
+
+# Environment variable management
+python-dotenv==1.0.0
+
+# Future dependencies (uncomment as needed):
+# sqlalchemy==2.0.23        # Database ORM
+# flask-sqlalchemy==3.1.1   # Flask SQLAlchemy integration
+# flask-login==0.6.3        # User session management
+# flask-cors==4.0.0         # CORS support for frontend
+# psycopg2-binary==2.9.9    # PostgreSQL adapter
+# pyjwt==2.8.0              # JWT tokens for authentication
+# pytest==7.4.3             # Testing framework
+

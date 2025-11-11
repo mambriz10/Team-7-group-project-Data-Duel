@@ -19,22 +19,32 @@
       <h1>Profile</h1>
       <p>Top-level page for your account.</p>
 
-      <div class="row">
-        <img src="https://api.dicebear.com/7.x/identicon/svg?seed=runner" 
-             alt="Avatar" width="64" height="64"
-             style="border-radius:50%; border:1px solid #e5e7eb;" />
-        <div style="text-align:left;">
-          <div style="font-weight:700;">Runner Name</div>
-          <div style="color:#666; font-size:14px;">@handle • Chicago, IL</div>
-          <a class="btn" href="profile-edit.html">Edit Profile</a>
+      <div id="loading" style="text-align:center; padding:20px;">
+        <p>Loading profile...</p>
+      </div>
+
+      <div id="profileContent" style="display:none;">
+        <div class="row">
+          <img id="avatar" src="https://api.dicebear.com/7.x/identicon/svg?seed=runner" 
+               alt="Avatar" width="64" height="64"
+               style="border-radius:50%; border:1px solid #e5e7eb;" />
+          <div style="text-align:left;">
+            <div id="userName" style="font-weight:700;">Runner Name</div>
+            <div id="userInfo" style="color:#666; font-size:14px;">@handle • Location</div>
+          </div>
+        </div>
+
+        <div class="statsline">
+          <div><div id="runs" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Runs</div></div>
+          <div><div id="distance" style="font-weight:700;">0 km</div><div style="color:#666; font-size:12px;">Distance</div></div>
+          <div><div id="pace" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Avg Pace</div></div>
+          <div><div id="score" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Score</div></div>
         </div>
       </div>
 
-
-      <div class="statsline">
-        <div><div style="font-weight:700;">23</div><div style="color:#666; font-size:12px;">Runs</div></div>
-        <div><div style="font-weight:700;">118 km</div><div style="color:#666; font-size:12px;">Distance</div></div>
-        <div><div style="font-weight:700;">4.9</div><div style="color:#666; font-size:12px;">Avg Pace</div></div>
+      <div id="error" style="display:none; padding:20px; text-align:center;">
+        <p style="color:#ef4444;">[Error] Could not load profile</p>
+        <a class="btn" href="http://localhost:5000/auth/strava">Connect Strava</a>
       </div>
 
       <div class="group" role="navigation" aria-label="Profile subpages">
@@ -46,15 +56,49 @@
 
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
-      <a href="profile.html" aria-label="Profile" class="active"><div class="icon">👤</div><div>Profile</div></a>
-      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
-      <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
-      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
-      <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+      <a href="profile.html" aria-label="Profile" class="active"><div class="icon">Profile</div></a>
+      <a href="settings.html" aria-label="Settings"><div class="icon">Settings</div></a>
+      <a href="index.html" aria-label="Home"><div class="icon">Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">Social</div></a>
+      <a href="routes.html" aria-label="Routes"><div class="icon">Routes</div></a>
     </div>
   </nav>
 
+  <script src="api.js"></script>
   <script src="script.js"></script>
+  <script>
+    // Load profile data when page loads
+    async function loadProfile() {
+      try {
+        const data = await api.getProfile();
+        
+        // Update UI with data
+        document.getElementById('userName').textContent = data.name;
+        document.getElementById('userInfo').textContent = `@${data.username} • ${data.location}`;
+        document.getElementById('avatar').src = data.avatar;
+        
+        document.getElementById('runs').textContent = data.stats.runs;
+        document.getElementById('distance').textContent = data.stats.distance_km + ' km';
+        document.getElementById('pace').textContent = data.stats.avg_pace.toFixed(1);
+        document.getElementById('score').textContent = data.stats.score;
+        
+        // Show content, hide loading
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('profileContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+    
+    // Load on page ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadProfile);
+    } else {
+      loadProfile();
+    }
+  </script>
 </body>
 </html>
 

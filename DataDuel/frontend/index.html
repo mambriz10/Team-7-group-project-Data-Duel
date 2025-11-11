@@ -11,10 +11,20 @@
 <body>
   <main class="page">
     <section class="card">
-      <h1>Home</h1>
-      <p>Landing page. Click below to view Leaderboards or add activity.</p>
-      <a class="btn primary" href="leaderboards.html">Go to Leaderboards</a>
-      <a class="btn primary" href="Strava.html">Sync Strava Data</a>
+      <h1>DataDuel</h1>
+      <p>Fair competition through improvement-based scoring</p>
+      
+      <div id="authStatus" style="margin:20px 0; padding:16px; border-radius:12px; background:#f5f3ff;">
+        <div id="statusContent">
+          <p style="margin:0;">Checking status...</p>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <a class="btn primary" href="leaderboards.html">View Leaderboards</a>
+        <a class="btn" href="profile.html">My Profile</a>
+        <button id="syncBtn" class="btn" style="display:none;">Sync Activities</button>
+      </div>
     </section>
   </main>
   
@@ -22,16 +32,63 @@
   <!-- Bottom tabs: Profile, Settings, Home, Social, Routes -->
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
-      <a href="profile.html" aria-label="Profile"><div class="icon">👤</div><div>Profile</div></a>
-      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
-      <a href="index.html" aria-label="Home" class="active"><div class="icon">🏠</div><div>Home</div></a>
-      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
-      <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+      <a href="profile.html" aria-label="Profile"><div class="icon">Profile</div></a>
+      <a href="settings.html" aria-label="Settings"><div class="icon">Settings</div></a>
+      <a href="index.html" aria-label="Home" class="active"><div class="icon">Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">Social</div></a>
+      <a href="routes.html" aria-label="Routes"><div class="icon">Routes</div></a>
     </div>
   </nav>
 
+  <script src="api.js"></script>
   <script src="script.js"></script>
-  
-
+  <script>
+    async function checkStatus() {
+      try {
+        const status = await api.getStatus();
+        const statusContent = document.getElementById('statusContent');
+        
+        if (status.authenticated) {
+          statusContent.innerHTML = `
+            <p style="margin:0; color:#10b981;">[Connected] Connected to Strava</p>
+            <p style="margin:4px 0 0 0; font-size:13px; color:#666;">User ID: ${status.athlete_id}</p>
+          `;
+          document.getElementById('syncBtn').style.display = 'inline-block';
+        } else {
+          statusContent.innerHTML = `
+            <p style="margin:0; color:#f59e0b;">[Warning] Not connected to Strava</p>
+            <a class="btn primary" href="http://localhost:5000/auth/strava" style="margin-top:8px;">Connect Strava</a>
+          `;
+        }
+      } catch (error) {
+        console.error('Status check failed:', error);
+        document.getElementById('statusContent').innerHTML = `
+          <p style="margin:0; color:#ef4444;">[Error] Backend not reachable</p>
+          <p style="font-size:13px; margin:4px 0 0 0;">Make sure the Flask server is running on localhost:5000</p>
+        `;
+      }
+    }
+    
+    // Handle sync button
+    document.getElementById('syncBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('syncBtn');
+      btn.textContent = 'Syncing...';
+      btn.disabled = true;
+      
+      try {
+        const result = await api.syncActivities();
+        alert(`Sync successful!\\n\\nWorkouts: ${result.metrics.total_workouts}\\nDistance: ${result.metrics.total_distance_km} km\\nScore: ${result.metrics.score}`);
+        checkStatus();
+      } catch (error) {
+        alert('[Error] Sync failed: ' + error.message);
+      } finally {
+        btn.textContent = 'Sync Activities';
+        btn.disabled = false;
+      }
+    });
+    
+    // Check status on load
+    checkStatus();
+  </script>
 </body>
 </html>

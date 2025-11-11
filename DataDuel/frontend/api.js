@@ -1,0 +1,122 @@
+/**
+ * API Client for DataDuel Backend
+ * Handles all communication with Flask API
+ */
+
+const API_BASE_URL = 'http://localhost:5000';
+
+class DataDuelAPI {
+    constructor(baseURL = API_BASE_URL) {
+        this.baseURL = baseURL;
+    }
+
+    /**
+     * Generic fetch wrapper with error handling
+     */
+    async _fetch(endpoint, options = {}) {
+        try {
+            const response = await fetch(`${this.baseURL}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'API request failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error(`API Error (${endpoint}):`, error);
+            throw error;
+        }
+    }
+
+    // ========================================================================
+    // Authentication
+    // ========================================================================
+
+    async getStatus() {
+        return this._fetch('/api/status');
+    }
+
+    // ========================================================================
+    // Data Sync
+    // ========================================================================
+
+    async syncActivities() {
+        return this._fetch('/api/sync', { method: 'POST' });
+    }
+
+    // ========================================================================
+    // User Profile
+    // ========================================================================
+
+    async getProfile() {
+        return this._fetch('/api/profile');
+    }
+
+    // ========================================================================
+    // Leaderboard
+    // ========================================================================
+
+    async getLeaderboard() {
+        return this._fetch('/api/leaderboard');
+    }
+
+    // ========================================================================
+    // Friends
+    // ========================================================================
+
+    async getFriends() {
+        return this._fetch('/api/friends');
+    }
+
+    // ========================================================================
+    // Strava Direct
+    // ========================================================================
+
+    async getActivities() {
+        return this._fetch('/strava/activities');
+    }
+
+    // ========================================================================
+    // Routes
+    // ========================================================================
+
+    async getAllRoutes() {
+        return this._fetch('/api/routes/all');
+    }
+
+    async searchRoutes(distance_km, difficulty, surface) {
+        const params = new URLSearchParams();
+        if (distance_km) params.append('distance_km', distance_km);
+        if (difficulty) params.append('difficulty', difficulty);
+        if (surface) params.append('surface', surface);
+        
+        return this._fetch(`/api/routes/search?${params.toString()}`);
+    }
+
+    async getRoute(routeId) {
+        return this._fetch(`/api/routes/${routeId}`);
+    }
+
+    async generateCustomRoute(distance_km, start_location) {
+        return this._fetch('/api/routes/generate', {
+            method: 'POST',
+            body: JSON.stringify({ distance_km, start_location })
+        });
+    }
+}
+
+// Create global API instance
+const api = new DataDuelAPI();
+
+// Export for use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { DataDuelAPI, api };
+}
+

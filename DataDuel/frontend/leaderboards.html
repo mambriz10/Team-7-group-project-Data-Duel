@@ -28,48 +28,34 @@
         <span class="pill">This week</span>
       </div>
 
-      <table class="lb-table" aria-describedby="lb-caption">
-        <caption id="lb-caption" style="text-align:left; margin:8px 0 12px 0;">Improvement score (demo data)</caption>
-        <thead>
-          <tr>
-            <th class="pos">#</th>
-            <th>Name</th>
-            <th>Runs</th>
-            <th>Improvement</th>
-            <th>Total Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="pos">1</td>
-            <td>user1</td>
-            <td>15</td>
-            <td>+6.2%</td>
-            <td>312</td>
-          </tr>
-          <tr class="you">
-            <td class="pos">2</td>
-            <td>user2</td>
-            <td>12</td>
-            <td>+5.1%</td>
-            <td>284</td>
-          </tr>
-          <tr>
-            <td class="pos">3</td>
-            <td>user3</td>
-            <td>10</td>
-            <td>+3.9%</td>
-            <td>241</td>
-          </tr>
-          <tr>
-            <td class="pos">4</td>
-            <td>user4</td>
-            <td>9</td>
-            <td>+2.4%</td>
-            <td>205</td>
-          </tr>
-        </tbody>
-      </table>
+      <div id="loading" style="text-align:center; padding:20px;">
+        <p>Loading leaderboard...</p>
+      </div>
+
+      <div id="leaderboardContent" style="display:none;">
+        <table class="lb-table" aria-describedby="lb-caption">
+          <caption id="lb-caption" style="text-align:left; margin:8px 0 12px 0;">
+            Improvement-based scoring
+          </caption>
+          <thead>
+            <tr>
+              <th class="pos">#</th>
+              <th>Name</th>
+              <th>Runs</th>
+              <th>Improvement</th>
+              <th>Total Points</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="error" style="display:none; padding:20px; text-align:center;">
+        <p style="color:#ef4444;">[Error] Could not load leaderboard</p>
+        <a class="btn" href="http://localhost:5000/auth/strava">Connect Strava</a>
+      </div>
 
       <div style="margin-top:16px;">
         <a class="btn" href="index.html">← Back to Home</a>
@@ -80,14 +66,71 @@
   <!-- Bottom tabs shown for consistency, but Leaderboards is NOT a tab -->
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
-      <a href="profile.html" aria-label="Profile"><div class="icon">👤</div><div>Profile</div></a>
-      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
-      <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
-      <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
-      <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+      <a href="profile.html" aria-label="Profile"><div class="icon">Profile</div></a>
+      <a href="settings.html" aria-label="Settings"><div class="icon">Settings</div></a>
+      <a href="index.html" aria-label="Home"><div class="icon">Home</div></a>
+      <a href="social.html" aria-label="Social"><div class="icon">Social</div></a>
+      <a href="routes.html" aria-label="Routes"><div class="icon">Routes</div></a>
     </div>
   </nav>
 
+  <script src="api.js"></script>
   <script src="script.js"></script>
+  <script>
+    // Load leaderboard data when page loads
+    async function loadLeaderboard() {
+      try {
+        const data = await api.getLeaderboard();
+        const tbody = document.getElementById('leaderboardBody');
+        
+        // Clear existing rows
+        tbody.innerHTML = '';
+        
+        // Get current user (if authenticated)
+        let currentUserId = null;
+        try {
+          const status = await api.getStatus();
+          currentUserId = status.athlete_id;
+        } catch (e) {
+          console.log('Not authenticated');
+        }
+        
+        // Add rows for each user
+        data.leaderboard.forEach((entry, index) => {
+          const row = document.createElement('tr');
+          
+          // Highlight current user
+          if (entry.user_id === currentUserId) {
+            row.classList.add('you');
+          }
+          
+          row.innerHTML = `
+            <td class="pos">${entry.rank}</td>
+            <td>${entry.username}</td>
+            <td>${entry.runs}</td>
+            <td>+${entry.improvement}%</td>
+            <td>${entry.score}</td>
+          `;
+          
+          tbody.appendChild(row);
+        });
+        
+        // Show content, hide loading
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('leaderboardContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+    
+    // Load on page ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadLeaderboard);
+    } else {
+      loadLeaderboard();
+    }
+  </script>
 </body>
 </html>
