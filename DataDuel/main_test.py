@@ -2,6 +2,7 @@ import Person
 
 if __name__ == "__main__":
     test_person = Person.Person()
+
     print(test_person.average_speed)
     print(test_person.baseline_average_speed)
     print(test_person.max_speed)
@@ -10,6 +11,7 @@ if __name__ == "__main__":
     print(test_person.baseline_distance)
     print(test_person.moving_time)
     print(test_person.baseline_moving_time)
+
 
 
     test_person.score.calculate_score(test_person.average_speed, test_person.max_speed, test_person.distance, test_person.moving_time,

@@ -18,19 +18,21 @@ class Person:
         self.display_name = self.__user_name # name for leaderboard
 
         # Metrics
-        self.average_speed = 25
-        self.max_speed = 50
-        self.distance = 1000
-        self.moving_time = 1000
-        self.cadence = 25
-        self.average_watts = 100
-        self.elapsed_time = 120
-        self.total_elevation = 20
+        self.average_speed = 0
+        self.max_speed = 0
+        self.distance = 0
+        self.moving_time = 0
+
+        # These 4 are going to be total averages as well, like the 4 total variables below
+        self.average_cadence = 0
+        self.average_heartrate = 0
+        self.elapsed_time = 0
+        self.total_elevation = 0
 
         # Ticked Variables
         self.streak = 0
         self.days_in_league = 0
-        self.total_workouts = 1
+        self.total_workouts = 0
 
         self.total_average_speed = self.average_speed
         self.total_max_speed = self.max_speed
@@ -38,10 +40,10 @@ class Person:
         self.total_moving_time = self.moving_time
 
         # Baselines used in score calculation
-        self.baseline_average_speed = self.total_average_speed / self.total_workouts
-        self.baseline_max_speed = self.total_max_speed / self.total_workouts
-        self.baseline_distance = self.total_distance / self.total_workouts
-        self.baseline_moving_time = self.total_moving_time / self.total_workouts
+        self.baseline_average_speed = 0
+        self.baseline_max_speed = 0
+        self.baseline_distance = 0
+        self.baseline_moving_time = 0
 
         # Placeholders for future objects
         self.score = Score.Score()
@@ -58,33 +60,31 @@ class Person:
         self.__user_name = new_user_name
 
     # Private helper to update totals from currently stored metrics
-    def __update_totals(self):
-        self.total_average_speed += self.average_speed
-        self.total_max_speed += self.max_speed
-        self.total_distance += self.distance
-        self.total_moving_time += self.moving_time
-
     def __update_totals_from_args(self, avg_speed, max_speed, distance, moving_time):
         self.total_average_speed += avg_speed
         self.total_max_speed += max_speed
         self.total_distance += distance
         self.total_moving_time += moving_time
 
-    def __recalculate_baselines(self):
+    def update_other_metrics(self, cadence, heartrate, time, elevation):
+        self.avegage_cadence += cadence
+        self.average_heartrate += heartrate
+        self.elapsed_time += time
+        self.total_elevation += elevation
+
+    # REMEMBER to update workouts += 1 before using this method
+    def update_baseline(self):
         self.baseline_average_speed = self.total_average_speed / self.total_workouts
         self.baseline_max_speed = self.total_max_speed / self.total_workouts
         self.baseline_distance = self.total_distance / self.total_workouts
         self.baseline_moving_time = self.total_moving_time / self.total_workouts
 
-    # REMEMBER to update workouts += 1 before using this method
-    def update_baseline_from_current_metrics(self):
-        self.__update_totals()
-        self.__recalculate_baselines()
+        self.average_cadence = self.avegage_cadence / self.total_workouts
+        self.average_heartrate = self.average_heartrate / self.total_workouts
+        self.elapsed_time = self.elapsed_time / self.total_workouts
+        self.total_elevation = self.total_elevation / self.total_workouts
 
-    # REMEMBER to update workouts += 1 before using this method
-    def update_baseline_from_workout(self, avg_speed, max_speed, distance, moving_time):
-        self.__update_totals_from_args(avg_speed, max_speed, distance, moving_time)
-        self.__recalculate_baselines()
+
 
     # Used in settings to change privacy to change which leaderboard name is shown
     def show_real_name(self, check):
@@ -96,3 +96,13 @@ class Person:
     # Adds 1 to total workouts for end of workout easy function call
     def increase_total_workouts(self):
         self.total_workouts += 1
+
+    #
+    def sum_activities(self, player_activities_by_day):
+        for day in player_activities_by_day.values():
+            for activity in day:
+                self.total_workouts += 1
+                self.__update_totals_from_args(activity.average_speed, activity.max_speed, activity.distance, activity.moving_time)
+                self.update_other_metrics(activity.average_cadence, activity.heartrate, activity.elapsed_time, activity.total_elevation_gain)
+
+        self.update_baseline()
