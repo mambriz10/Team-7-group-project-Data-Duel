@@ -2,7 +2,11 @@ import Person
 
 if __name__ == "__main__":
     test_person = Person.Person()
+    test_person.populate_player_activities_by_day()
+    test_person.sum_activities()
 
+    print("passed api")
+    print("\n\n")
     print(test_person.average_speed)
     print(test_person.baseline_average_speed)
     print(test_person.max_speed)

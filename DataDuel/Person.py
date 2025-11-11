@@ -11,15 +11,16 @@ import badges
 import requests
 import json
 
+
 class Person:
     def __init__(self):
         # User Information
-        self.__name = "Default_Name" # used for profile page and possible leaderboard name
-        self.__user_name = "Default_Username" # possible leaderboard name
+        self.__name = "Default_Name"  # used for profile page and possible leaderboard name
+        self.__user_name = "Default_Username"  # possible leaderboard name
 
-        self.display_name = self.__user_name # name for leaderboard
+        self.display_name = self.__user_name  # name for leaderboard
 
-        #data
+        # data
         self.player_activities_by_day = {}
         # Metrics
         self.average_speed = 0
@@ -52,9 +53,9 @@ class Person:
         # Placeholders for future objects
         self.score = Score.Score()
         self.weekly_challenges = challenges.challenges()
-        self.badges = badges.badges() # dummy value, should be like challenges instead.
+        self.badges = badges.badges()  # dummy value, should be like challenges instead.
 
-        self.rank = 0 # will be their index in leaderboard list + 1
+        self.rank = 0  # will be their index in leaderboard list + 1
 
     # Setters for user customizable options
     def change_name(self, new_name):
@@ -88,8 +89,6 @@ class Person:
         self.elapsed_time = self.elapsed_time / self.total_workouts
         self.total_elevation = self.total_elevation / self.total_workouts
 
-
-
     # Used in settings to change privacy to change which leaderboard name is shown
     def show_real_name(self, check):
         if check:
@@ -101,7 +100,6 @@ class Person:
     def increase_total_workouts(self):
         self.total_workouts += 1
 
-    #
     def populate_player_activities_by_day(self):
         API_URL = "http://localhost:5000/strava/activities"
         try:
@@ -110,13 +108,16 @@ class Person:
             self.player_activities_by_day = response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching activities: {e}")
-            
 
     def sum_activities(self):
         for day in self.player_activities_by_day.values():
+            print("Found a day\n")
             for activity in day:
+                print("Found an activity\n")
                 self.total_workouts += 1
-                self.__update_totals_from_args(activity.average_speed, activity.max_speed, activity.distance, activity.moving_time)
-                self.update_other_metrics(activity.average_cadence, activity.heartrate, activity.elapsed_time, activity.total_elevation_gain)
+                self.__update_totals_from_args(activity.average_speed, activity.max_speed, activity.distance,
+                                               activity.moving_time)
+                self.update_other_metrics(activity.average_cadence, activity.heartrate, activity.elapsed_time,
+                                          activity.total_elevation_gain)
 
         self.update_baseline()
