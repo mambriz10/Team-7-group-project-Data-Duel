@@ -6,10 +6,6 @@ class challenges:
         self.second_challenge = False
         self.third_challenge = False
 
-        self.first_name = "First"
-        self.second_name = "Second"
-        self.third_name = "Third"
-
         # They do not have to be the same challenge, it's just default values right now
         self.first_description = "Run 3 miles"
         self.second_description = "Run 5 miles"
