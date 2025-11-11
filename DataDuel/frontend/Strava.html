@@ -74,13 +74,14 @@
                 body: JSON.stringify({clientId, clientSecret})
             });
             
-            if (res.ok){
-                // const activities = await fetch("http://127.0.0.1:5000/strava/activities")
-                // if (activities.ok){
-                //     const act = await activities.json()
-                //     console.log(act)
-                // }
-            }   
+            if (res.ok) {
+                // Redirect user to Strava OAuth after saving credentials
+                window.location.href = "http://127.0.0.1:5000/auth/strava";
+            } else {
+                const errorData = await res.json();
+                console.error("Failed to save credentials:", errorData);
+                alert("Failed to save credentials: " + (errorData.error || "Unknown error"));
+            } 
         });
     </script>
     <nav class="tabs" aria-label="Primary navigation">
