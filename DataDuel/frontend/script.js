@@ -7,3 +7,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (href === path) a.classList.add('active');
   });
 });
+

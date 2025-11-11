@@ -41,12 +41,48 @@
                     </ul>
                 </li>
                 <li>Once saved, your app will show a <strong>Client ID</strong> and <strong>Client Secret</strong></li>
-                <a class="btn primary" href="leaderboards.html">add Client Secret</a>
-                <a class="btn primary" href="leaderboards.html">add Client ID</a>
             </ol>
-        </section>
+
+            <section class="card">
+                <label for="client-id">Client ID</label>
+                <input type="text" id="client-id" name="client-id" placeholder="Enter your Client ID">
+
+                <label for="client-secret">Client Secret</label>
+                <input type="password" id="client-secret" name="client-secret" placeholder="Enter your Client Secret">
+
+                <div class="row-actions">
+                    <button type="button" id="connectStrava" class="btn primary">
+                        Connect with Strava
+                    </button>
+                </div>
+            </section>
     </main>
 
+    <script>
+        const clientIdInput = document.getElementById("client-id");
+        const clientSecretInput = document.getElementById("client-secret");
+        const connectBtn = document.getElementById("connectStrava");
+
+        connectBtn.addEventListener("click", async function(e) {
+            e.preventDefault(); // prevent default form submission
+
+            const clientId = clientIdInput.value;
+            const clientSecret = clientSecretInput.value;
+            const res =  await fetch("http://127.0.0.1:5000/save-strava-credentials", {
+                method: "POST",
+                headers: {"content-Type": "application/json"},
+                body: JSON.stringify({clientId, clientSecret})
+            });
+            
+            if (res.ok){
+                // const activities = await fetch("http://127.0.0.1:5000/strava/activities")
+                // if (activities.ok){
+                //     const act = await activities.json()
+                //     console.log(act)
+                // }
+            }   
+        });
+    </script>
     <nav class="tabs" aria-label="Primary navigation">
         <div class="row">
         <a href="profile.html" aria-label="Profile" class="active"><div class="icon">👤</div><div>Profile</div></a>
