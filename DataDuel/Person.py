@@ -8,6 +8,8 @@
 import Score
 import challenges
 import badges
+import requests
+import json
 
 class Person:
     def __init__(self):
@@ -17,6 +19,8 @@ class Person:
 
         self.display_name = self.__user_name # name for leaderboard
 
+        #data
+        self.player_activities_by_day = {}
         # Metrics
         self.average_speed = 0
         self.max_speed = 0
@@ -98,8 +102,18 @@ class Person:
         self.total_workouts += 1
 
     #
-    def sum_activities(self, player_activities_by_day):
-        for day in player_activities_by_day.values():
+    def populate_player_activities_by_day(self):
+        API_URL = "http://localhost:5000/strava/activities"
+        try:
+            response = requests.get(API_URL)
+            response.raise_for_status()
+            self.player_activities_by_day = response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching activities: {e}")
+            
+
+    def sum_activities(self):
+        for day in self.player_activities_by_day.values():
             for activity in day:
                 self.total_workouts += 1
                 self.__update_totals_from_args(activity.average_speed, activity.max_speed, activity.distance, activity.moving_time)
