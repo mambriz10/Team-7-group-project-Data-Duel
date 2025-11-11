@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>adding strava Data</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { width: min(720px, 92%); margin: 0 auto; text-align:left; }
+    .section { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; }
+    .section + .section { margin-top:12px; }
+    .item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #e5e7eb; }
+    .item:last-child { border-bottom:none; }
+    .badge { display:inline-block; padding:4px 8px; border-radius:999px; border:1px solid #e5e7eb; font-size:12px; }
+    .steps {
+      margin-top: 1rem;
+      padding-left: 1.5rem;
+      line-height: 1.6;
+    }
+    .steps li {
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+
+<body>
+    <main class="page">
+        <section class="card">
+            <h1>Add Strava data</h1>
+            <ol class = "steps">
+                <li> Go to the <a href="https://www.strava.com/settings/api" target="_blank">Strava API settins page </a></li>
+                <li>Log in with your Strava Account</li>
+                <li>Click <strong>"Create & Manage Your App"</strong></li>
+                <li> <strong>Fill in:</strong>
+                    <ul>
+                        <li><strong>Application Name: </strong>anything you want ("e.g. Data Duel")</li>
+                        <li><strong>Category: </strong>choose something relevant ("e.g. Training")</li>
+                        <li><strong>Club: </strong>optional or None</li>
+                        <li><strong>Website: </strong>https://localhost</li>
+                        <li><strong>Authorization CallBack Domain: </strong><code>localhost</code></li>
+                    </ul>
+                </li>
+                <li>Once saved, your app will show a <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+                <a class="btn primary" href="leaderboards.html">add Client Secret</a>
+                <a class="btn primary" href="leaderboards.html">add Client ID</a>
+            </ol>
+        </section>
+    </main>
+
+    <nav class="tabs" aria-label="Primary navigation">
+        <div class="row">
+        <a href="profile.html" aria-label="Profile" class="active"><div class="icon">👤</div><div>Profile</div></a>
+        <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
+        <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
+        <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
+        <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+        </div>
+    </nav>
+</body>
+
+</html>
