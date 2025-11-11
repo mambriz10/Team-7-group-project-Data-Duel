@@ -22,15 +22,24 @@
       <h1>Stats</h1>
       <p>Your key metrics.</p>
 
-      <div class="grid" role="list">
-        <div class="tile" role="listitem"><div class="k">Average Speed</div><div class="v">25</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Max Speed</div><div class="v">50</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Distance</div><div class="v">1000</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Moving Time</div><div class="v">1000</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Cadence</div><div class="v">25</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Heartrate</div><div class="v">100</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Elapsed Time</div><div class="v">120</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Total Elevation</div><div class="v">20</div></div>
+      <div id="loading" style="text-align:center; padding:20px;">
+        <p>Loading stats...</p>
+      </div>
+
+      <div id="statsContent" style="display:none;">
+        <div class="grid" role="list">
+          <div class="tile" role="listitem"><div class="k">Total Workouts</div><div class="v" id="totalWorkouts">0</div></div>
+          <div class="tile" role="listitem"><div class="k">Total Distance</div><div class="v" id="totalDistance">0 km</div></div>
+          <div class="tile" role="listitem"><div class="k">Average Pace</div><div class="v" id="avgPace">0 min/km</div></div>
+          <div class="tile" role="listitem"><div class="k">Current Streak</div><div class="v" id="streak">0 days</div></div>
+          <div class="tile" role="listitem"><div class="k">Total Score</div><div class="v" id="score">0</div></div>
+          <div class="tile" role="listitem"><div class="k">Improvement Score</div><div class="v" id="improvement">0</div></div>
+        </div>
+      </div>
+
+      <div id="error" style="display:none; padding:20px; text-align:center;">
+        <p style="color:#ef4444;">Could not load stats. Please sync your activities first.</p>
+        <a class="btn primary" href="index.html">Go to Home</a>
       </div>
 
       <div style="margin-top:16px;">
@@ -49,6 +58,51 @@
     </div>
   </nav>
 
+  <script src="api.js"></script>
   <script src="script.js"></script>
+  <script>
+    async function loadStats() {
+      try {
+        const profile = await api.getProfile();
+        const status = await api.getStatus();
+        
+        // Update stats
+        document.getElementById('totalWorkouts').textContent = profile.stats.runs || 0;
+        document.getElementById('totalDistance').textContent = (profile.stats.distance_km || 0) + ' km';
+        document.getElementById('avgPace').textContent = (profile.stats.avg_pace || 0).toFixed(1) + ' min/km';
+        document.getElementById('streak').textContent = (profile.stats.streak || 0) + ' days';
+        document.getElementById('score').textContent = profile.stats.score || 0;
+        
+        // Get improvement from score data
+        try {
+          const response = await fetch('http://localhost:5000/api/status');
+          if (response.ok) {
+            const statusData = await response.json();
+            if (statusData.authenticated) {
+              // Could add more detailed stats here
+              document.getElementById('improvement').textContent = '—';
+            }
+          }
+        } catch (e) {
+          document.getElementById('improvement').textContent = '—';
+        }
+        
+        // Show content
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('statsContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+    
+    // Load on page ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadStats);
+    } else {
+      loadStats();
+    }
+  </script>
 </body>
 </html>

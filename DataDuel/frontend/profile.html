@@ -34,6 +34,10 @@
           </div>
         </div>
 
+        <div id="noDataWarning" style="display:none; padding:12px; margin:12px 0; background:#fef3c7; border:1px solid #fbbf24; border-radius:8px; text-align:center;">
+          <p style="margin:0; color:#92400e; font-size:14px;">⚠️ No activity data yet. <a href="index.html" style="color:#92400e; font-weight:600;">Sync your activities</a> to see your stats!</p>
+        </div>
+
         <div class="statsline">
           <div><div id="runs" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Runs</div></div>
           <div><div id="distance" style="font-weight:700;">0 km</div><div style="color:#666; font-size:12px;">Distance</div></div>
@@ -71,16 +75,22 @@
     async function loadProfile() {
       try {
         const data = await api.getProfile();
+        console.log('Profile data loaded:', data);
         
         // Update UI with data
         document.getElementById('userName').textContent = data.name;
-        document.getElementById('userInfo').textContent = `@${data.username} • ${data.location}`;
+        document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
         document.getElementById('avatar').src = data.avatar;
         
-        document.getElementById('runs').textContent = data.stats.runs;
-        document.getElementById('distance').textContent = data.stats.distance_km + ' km';
-        document.getElementById('pace').textContent = data.stats.avg_pace.toFixed(1);
-        document.getElementById('score').textContent = data.stats.score;
+        document.getElementById('runs').textContent = data.stats.runs || 0;
+        document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
+        document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
+        document.getElementById('score').textContent = data.stats.score || 0;
+        
+        // Show warning if no data
+        if (!data.stats.runs || data.stats.runs === 0) {
+          document.getElementById('noDataWarning').style.display = 'block';
+        }
         
         // Show content, hide loading
         document.getElementById('loading').style.display = 'none';
