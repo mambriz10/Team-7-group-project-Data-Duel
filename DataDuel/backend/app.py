@@ -15,15 +15,17 @@ from strava_parser import StravaParser
 from route_generator import SimpleRouteGenerator
 from Person import Person
 from Score import Score
+from datetime import datetime
 
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend communication
+CORS(app, origins="http://localhost:5500")  # Enable CORS for frontend communication
 
 # Initialize data storage
 storage = DataStorage()
 
+CREDENTIALS_FILE = "credentials.json"
 CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
 CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
@@ -31,6 +33,38 @@ REDIRECT_URI = os.getenv("REDIRECT_URI")
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
 # ============================================================================
+
+def load_saved_credentials():
+    global CLIENT_ID, CLIENT_SECRET
+    if os.path.exists(CREDENTIALS_FILE):
+        with open(CREDENTIALS_FILE, "r") as f:
+            data = json.load(f)
+            CLIENT_ID = data.get("client_id", CLIENT_ID)
+            CLIENT_SECRET = data.get("client_secret", CLIENT_SECRET)
+
+# Endpoint to save credentials from frontend
+@app.route("/save-strava-credentials", methods=["POST"])
+def save_strava_credentials():
+    data = request.get_json()
+    client_id = data.get("clientId")
+    client_secret = data.get("clientSecret")
+
+    if not client_id or not client_secret:
+        return jsonify({"error": "Missing client_id or client_secret"}), 400
+
+    # Save to JSON file
+    with open(CREDENTIALS_FILE, "w") as f:
+        json.dump({
+            "client_id": client_id,
+            "client_secret": client_secret
+        }, f)
+
+    # Update in-memory variables
+    global CLIENT_ID, CLIENT_SECRET
+    CLIENT_ID = client_id
+    CLIENT_SECRET = client_secret
+
+    return jsonify({"status": "ok"})
 
 @app.route("/")
 def home():
@@ -107,11 +141,7 @@ def auth_callback():
     
     storage.save_user(athlete_id, user_data)
 
-    return jsonify({
-        "message": "Authentication successful! Please sync your activities.",
-        "athlete": athlete,
-        "redirect": "/api/sync"
-    })
+    return redirect("http://localhost:5500/index.html")
 
 def get_valid_token():
     """Load and refresh the access token if expired."""
@@ -156,19 +186,57 @@ def get_valid_token():
 
 @app.route("/strava/activities")
 def get_activities():
-    """Fetch recent Strava activities"""
+    """Fetch recent Strava activities using a valid access token."""
     try:
-        access_token, athlete_id = get_valid_token()
+        access_token, _ = get_valid_token()
     except Exception as e:
         return jsonify({"error": f"Could not load or refresh token: {str(e)}"}), 500
 
     headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get("https://www.strava.com/api/v3/athlete/activities", headers=headers)
+    response = requests.get("https://www.strava.com/api/v3/athlete/activities", headers=headers, params={"per_page": 30})
 
     if response.status_code != 200:
         return jsonify({"error": "Failed to fetch activities", "details": response.json()}), response.status_code
 
-    return jsonify(response.json())
+    data = response.json()
+    from datetime import datetime
+
+    # Initialize map for all weekdays
+    activities_by_day = {
+        "Monday": [],
+        "Tuesday": [],
+        "Wednesday": [],
+        "Thursday": [],
+        "Friday": [],
+        "Saturday": [],
+        "Sunday": []
+    }
+    # --- Group activities by weekday ---
+    for activity in data:
+        # Convert ISO timestamp
+        start_local = datetime.fromisoformat(activity["start_date_local"].replace("Z", "+00:00"))
+        weekday = start_local.strftime("%A")
+
+        # Collect relevant metrics
+        activity_info = {
+            "id": activity.get("id"),
+            "name": activity.get("name"),
+            "date": start_local.strftime("%Y-%m-%d"),
+            "distance": activity.get("distance"),
+            "moving_time": activity.get("moving_time"),
+            "elapsed_time": activity.get("elapsed_time"),
+            "average_speed": activity.get("average_speed"),
+            "max_speed": activity.get("max_speed"),
+            "average_cadence": activity.get("average_cadence"),
+            "average_heartrate": activity.get("average_heartrate"),
+            "max_heartrate": activity.get("max_heartrate"),
+            "total_elevation_gain": activity.get("total_elevation_gain"),
+        }
+
+        # Add to appropriate weekday
+        activities_by_day[weekday].append(activity_info)
+
+    return jsonify(activities_by_day)
 
 @app.route("/api/sync", methods=["POST", "GET"])
 def sync_data():
