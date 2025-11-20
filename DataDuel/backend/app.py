@@ -20,7 +20,7 @@ from datetime import datetime
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins="http://localhost:5500")  # Enable CORS for frontend communication
+CORS(app)  # Enable CORS for frontend communication (allows any origin in development)
 
 # Initialize data storage
 storage = DataStorage()
