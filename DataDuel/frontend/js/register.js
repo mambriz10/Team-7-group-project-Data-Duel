@@ -1,7 +1,7 @@
 // js/register.js
 const supabaseUrl = "https://gbvyveaifvqneyayloks.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdidnl2ZWFpZnZxbmV5YXlsb2tzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1ODU1ODgsImV4cCI6MjA3NzE2MTU4OH0.Vn3LUVeRaLAQ7EGX97Z9PSPK-J7o9rR0-HPxbvXGH9I"; // Yes, this is the public key
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+const db = supabase.createClient(supabaseUrl, supabaseKey);
 
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.querySelector("form");
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             // Register user with Supabase Auth
-            const { data, error } = await supabase.auth.signUp({ email, password });
+            const { data, error } = await db.auth.signUp({ email, password });
 
             if (error) {
                 alert("Registration failed: " + error.message);
