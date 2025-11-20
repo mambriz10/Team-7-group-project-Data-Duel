@@ -20,15 +20,16 @@ from datetime import datetime
 load_dotenv()
 
 app = Flask(__name__)
+#"http://127.0.0.1:5500"
 CORS(app, origins="http://localhost:5500")  # Enable CORS for frontend communication
 
 # Initialize data storage
 storage = DataStorage()
 
 CREDENTIALS_FILE = "credentials.json"
-CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
-CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI")
+# CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
+# CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
+REDIRECT_URI = "http://localhost:5000/auth/strava/callback" #os.getenv("REDIRECT_URI") #WHAT IS THIS ? fix this.
 
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
@@ -140,7 +141,7 @@ def auth_callback():
     }
     
     storage.save_user(athlete_id, user_data)
-
+    #                http://localhost:5500/index.html
     return redirect("http://localhost:5500/index.html")
 
 def get_valid_token():
@@ -522,6 +523,27 @@ def generate_custom_route():
         "message": "Custom route generated",
         "route": route
     })
+
+# @app.post("/api/login")
+# def login():
+#     data = request.get_json()
+#     email = data.get("email")
+#     password = data.get("password")
+
+#     if email not in USERS:
+#         return jsonify({"error": "User not found"}), 401
+
+#     if USERS[email]["password"] != password:
+#         return jsonify({"error": "Incorrect password"}), 401
+
+#     return jsonify({
+#         "success": True,
+#         "user": {
+#             "email": email,
+#             "name": USERS[email]["name"]
+#         }
+#     })
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
