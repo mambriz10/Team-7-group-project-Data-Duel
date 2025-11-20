@@ -130,12 +130,32 @@ def auth_callback():
         print(f"   Response: {json.dumps(data, indent=2)}")
         return jsonify({"error": "Failed to get access token", "details": data}), 400
 
+    # Extract and validate athlete data
+    print(f"\n[ATHLETE] Extracting athlete data from response...")
     athlete = data.get("athlete", {})
-    athlete_id = str(athlete.get("id"))
+    
+    if not athlete:
+        print(f"[ERROR] No athlete data in response!")
+        print(f"   Full response: {json.dumps(data, indent=2)}")
+        return jsonify({"error": "No athlete data in response"}), 400
+    
+    print(f"   Athlete data keys: {list(athlete.keys())}")
+    print(f"   Full athlete data: {json.dumps(athlete, indent=2)}")
+    
+    athlete_id = athlete.get("id")
+    if not athlete_id:
+        print(f"[ERROR] Athlete ID is missing!")
+        return jsonify({"error": "Athlete ID missing from response"}), 400
+    
+    athlete_id = str(athlete_id)
     
     print(f"[SUCCESS] Token exchange successful!")
     print(f"   Athlete ID: {athlete_id}")
-    print(f"   Athlete name: {athlete.get('firstname')} {athlete.get('lastname')}")
+    print(f"   Athlete firstname: {athlete.get('firstname')}")
+    print(f"   Athlete lastname: {athlete.get('lastname')}")
+    print(f"   Athlete username: {athlete.get('username')}")
+    print(f"   Athlete city: {athlete.get('city')}")
+    print(f"   Athlete state: {athlete.get('state')}")
 
     # Store tokens securely
     print(f"\n[STORAGE] Saving tokens to tokens.json...")
@@ -150,27 +170,70 @@ def auth_callback():
     
     # Create or update user in storage
     print(f"\n[PERSON] Creating Person object from athlete data...")
-    person = StravaParser.create_person_from_athlete(athlete)
+    print(f"   Passing athlete data to StravaParser.create_person_from_athlete()...")
     
-    print(f"[SUCCESS] Person object created:")
-    print(f"   Name: {person._Person__name}")
-    print(f"   Username: {person._Person__user_name}")
+    try:
+        person = StravaParser.create_person_from_athlete(athlete)
+        print(f"[SUCCESS] Person object created:")
+        print(f"   Name (via name mangling): {person._Person__name}")
+        print(f"   Username (via name mangling): {person._Person__user_name}")
+        print(f"   Display name: {person.display_name}")
+    except Exception as e:
+        print(f"[ERROR] Failed to create Person object: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Failed to create Person object", "details": str(e)}), 500
+    
+    # Build user_data dictionary
+    print(f"\n[DATA] Building user_data dictionary...")
+    
+    # Extract location components
+    city = athlete.get('city', '')
+    state = athlete.get('state', '')
+    location_parts = [part for part in [city, state] if part]
+    location = ", ".join(location_parts) if location_parts else "Unknown"
+    
+    print(f"   City: '{city}'")
+    print(f"   State: '{state}'")
+    print(f"   Combined location: '{location}'")
     
     user_data = {
         "id": athlete_id,
         "name": person._Person__name,
         "username": person._Person__user_name,
         "display_name": person.display_name,
-        "avatar": athlete.get("profile"),
-        "location": f"{athlete.get('city', '')}, {athlete.get('state', '')}".strip(', '),
+        "avatar": athlete.get("profile", ""),
+        "location": location,
         "strava_id": athlete_id
     }
     
+    print(f"\n[DATA] user_data dictionary built:")
+    print(f"   Keys: {list(user_data.keys())}")
+    print(f"   Values:")
+    for key, value in user_data.items():
+        print(f"      {key}: {value}")
+    
     print(f"\n[STORAGE] Saving user data to storage...")
-    print(f"   User ID: {athlete_id}")
-    print(f"   User data keys: {list(user_data.keys())}")
-    storage.save_user(athlete_id, user_data)
-    print(f"[SUCCESS] User data saved successfully")
+    print(f"   Calling storage.save_user({athlete_id}, user_data)")
+    
+    try:
+        storage.save_user(athlete_id, user_data)
+        print(f"[SUCCESS] User data saved successfully to DataStorage")
+        
+        # Verify the save by reading it back
+        print(f"\n[VERIFY] Reading user data back from storage to verify...")
+        verified_data = storage.get_user(athlete_id)
+        if verified_data:
+            print(f"[SUCCESS] Verification successful - user data found in storage")
+            print(f"   Verified keys: {list(verified_data.keys())}")
+            print(f"   Verified name: {verified_data.get('name')}")
+        else:
+            print(f"[WARNING] Could not verify user data - not found in storage!")
+    except Exception as e:
+        print(f"[ERROR] Failed to save user data: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Failed to save user data", "details": str(e)}), 500
     
     print(f"\n[REDIRECT] Redirecting to frontend...")
     print("="*80 + "\n")
