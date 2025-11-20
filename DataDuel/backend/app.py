@@ -97,8 +97,15 @@ def auth_strava():
 @app.route("/auth/strava/callback")
 def auth_callback():
     """Handle OAuth callback and exchange code for access token"""
+    print("\n" + "="*80)
+    print("[AUTH CALLBACK] Starting OAuth token exchange")
+    print("="*80)
+    
     code = request.args.get("code")
+    print(f"[AUTH] Authorization code received: {code[:20]}..." if code else "[ERROR] No code received")
+    
     if not code:
+        print("[ERROR] Missing authorization code")
         return jsonify({"error": "Missing authorization code"}), 400
 
     token_url = "https://www.strava.com/oauth/token"
@@ -108,17 +115,30 @@ def auth_callback():
         "code": code,
         "grant_type": "authorization_code",
     }
+    
+    print(f"[API] Requesting tokens from Strava...")
+    print(f"   Client ID: {CLIENT_ID}")
 
     response = requests.post(token_url, data=payload)
     data = response.json()
+    
+    print(f"[API] Token response status: {response.status_code}")
+    print(f"   Response keys: {list(data.keys())}")
 
     if "access_token" not in data:
+        print(f"[ERROR] Failed to get access token")
+        print(f"   Response: {json.dumps(data, indent=2)}")
         return jsonify({"error": "Failed to get access token", "details": data}), 400
 
     athlete = data.get("athlete", {})
     athlete_id = str(athlete.get("id"))
+    
+    print(f"[SUCCESS] Token exchange successful!")
+    print(f"   Athlete ID: {athlete_id}")
+    print(f"   Athlete name: {athlete.get('firstname')} {athlete.get('lastname')}")
 
     # Store tokens securely
+    print(f"\n[STORAGE] Saving tokens to tokens.json...")
     with open("tokens.json", "w") as f:
         json.dump({
             "access_token": data["access_token"],
@@ -126,9 +146,15 @@ def auth_callback():
             "expires_at": data["expires_at"],
             "athlete_id": athlete_id
         }, f)
+    print(f"[SUCCESS] Tokens saved successfully")
     
     # Create or update user in storage
+    print(f"\n[PERSON] Creating Person object from athlete data...")
     person = StravaParser.create_person_from_athlete(athlete)
+    
+    print(f"[SUCCESS] Person object created:")
+    print(f"   Name: {person._Person__name}")
+    print(f"   Username: {person._Person__user_name}")
     
     user_data = {
         "id": athlete_id,
@@ -140,7 +166,14 @@ def auth_callback():
         "strava_id": athlete_id
     }
     
+    print(f"\n[STORAGE] Saving user data to storage...")
+    print(f"   User ID: {athlete_id}")
+    print(f"   User data keys: {list(user_data.keys())}")
     storage.save_user(athlete_id, user_data)
+    print(f"[SUCCESS] User data saved successfully")
+    
+    print(f"\n[REDIRECT] Redirecting to frontend...")
+    print("="*80 + "\n")
     #                http://localhost:5500/index.html
     return redirect("http://localhost:5500/index.html")
 
@@ -242,44 +275,101 @@ def get_activities():
 @app.route("/api/sync", methods=["POST", "GET"])
 def sync_data():
     """Sync Strava data and calculate scores"""
+    print("\n" + "="*80)
+    print("[SYNC] Starting activity sync process")
+    print("="*80)
+    
     try:
         access_token, athlete_id = get_valid_token()
+        print(f"[SUCCESS] Token validated successfully")
+        print(f"   Athlete ID: {athlete_id}")
     except Exception as e:
+        print(f"[ERROR] Token validation failed: {str(e)}")
         return jsonify({"error": f"Not authenticated: {str(e)}"}), 401
 
     # Fetch activities from Strava
+    print(f"\n[API] Fetching activities from Strava API...")
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get("https://www.strava.com/api/v3/athlete/activities", headers=headers, params={"per_page": 30})
+    
+    print(f"[API] Strava API response status: {response.status_code}")
 
     if response.status_code != 200:
+        print(f"[ERROR] Failed to fetch activities from Strava")
         return jsonify({"error": "Failed to fetch activities"}), response.status_code
 
     activities = response.json()
+    print(f"[SUCCESS] Fetched {len(activities)} activities from Strava")
+    if activities:
+        print(f"   First activity: {activities[0].get('name')} ({activities[0].get('type')})")
+        print(f"   Activity types: {set(a.get('type') for a in activities)}")
     
     # Get user data
+    print(f"\n[STORAGE] Loading user data from storage...")
     user_data = storage.get_user(athlete_id)
     if not user_data:
+        print(f"[ERROR] User not found in storage (ID: {athlete_id})")
         return jsonify({"error": "User not found. Please authenticate first."}), 404
     
+    print(f"[SUCCESS] User data loaded:")
+    print(f"   Name: {user_data.get('name')}")
+    print(f"   Username: {user_data.get('username')}")
+    
     # Create Person object
+    print(f"\n[PERSON] Creating Person object...")
     person = Person()
     person.change_name(user_data.get('name', 'Unknown'))
     person.change_username(user_data.get('username', 'unknown'))
+    print(f"[SUCCESS] Person object created")
     
     # Parse activities and update person
+    print(f"\n[PARSER] Parsing activities with StravaParser...")
     metrics = StravaParser.parse_activities(activities, person)
     
     if not metrics:
+        print(f"[WARNING] No running activities found in {len(activities)} activities")
         return jsonify({"message": "No running activities found"}), 200
     
+    print(f"[SUCCESS] Activities parsed successfully:")
+    print(f"   Total workouts: {person.total_workouts}")
+    print(f"   Total distance: {person.total_distance} meters ({person.total_distance/1000:.2f} km)")
+    print(f"   Total moving time: {person.total_moving_time} seconds ({person.total_moving_time/60:.1f} min)")
+    print(f"   Average speed: {person.average_speed:.2f} m/s")
+    print(f"   Baseline average speed: {person.baseline_average_speed:.2f} m/s")
+    print(f"   Baseline distance: {person.baseline_distance:.0f} meters")
+    
     # Calculate streak
+    print(f"\n[STREAK] Calculating streak...")
     person.streak = StravaParser.calculate_streak(activities)
+    print(f"[SUCCESS] Streak calculated: {person.streak} days")
     
     # Check badges and challenges
+    print(f"\n[BADGES] Checking badges...")
     StravaParser.check_badges(person)
+    badge_points = person.badges.get_points()
+    print(f"[SUCCESS] Badges checked:")
+    print(f"   Moving time badge: {person.badges.moving_time}")
+    print(f"   Distance badge: {person.badges.distance}")
+    print(f"   Max speed badge: {person.badges.max_speed}")
+    print(f"   Total badge points: {badge_points}")
+    
+    print(f"\n[CHALLENGES] Checking challenges...")
     StravaParser.check_challenges(person, activities)
+    challenge_points = person.weekly_challenges.get_points()
+    print(f"[SUCCESS] Challenges checked:")
+    print(f"   Challenge 1: {person.weekly_challenges.first_challenge}")
+    print(f"   Challenge 2: {person.weekly_challenges.second_challenge}")
+    print(f"   Challenge 3: {person.weekly_challenges.third_challenge}")
+    print(f"   Total challenge points: {challenge_points}")
     
     # Calculate score
+    print(f"\n[SCORE] Calculating score...")
+    print(f"   Input metrics:")
+    print(f"     Average speed: {person.average_speed:.2f} vs baseline {person.baseline_average_speed:.2f}")
+    print(f"     Max speed: {person.max_speed:.2f} vs baseline {person.baseline_max_speed:.2f}")
+    print(f"     Distance: {person.distance:.0f} vs baseline {person.baseline_distance:.0f}")
+    print(f"     Moving time: {person.moving_time:.0f} vs baseline {person.baseline_moving_time:.0f}")
+    
     person.score.calculate_score(
         person.average_speed,
         person.max_speed,
@@ -289,15 +379,21 @@ def sync_data():
         person.baseline_max_speed,
         person.baseline_distance,
         person.baseline_moving_time,
-        person.badges.get_points(),
-        person.weekly_challenges.get_points(),
+        badge_points,
+        challenge_points,
         person.streak
     )
+    print(f"[SUCCESS] Score calculated: {person.score.score}")
+    print(f"   Improvement: {person.score.improvement:.2f}")
     
     # Save activities
+    print(f"\n[STORAGE] Saving data to storage...")
+    print(f"   Saving {len(activities)} activities...")
     storage.save_activities(athlete_id, activities)
+    print(f"[SUCCESS] Activities saved")
     
     # Update user data with metrics
+    print(f"   Updating user data with metrics...")
     user_data.update({
         'total_workouts': person.total_workouts,
         'total_distance': person.total_distance,
@@ -307,21 +403,25 @@ def sync_data():
         'streak': person.streak
     })
     storage.save_user(athlete_id, user_data)
+    print(f"[SUCCESS] User data updated")
     
     # Save score data
+    print(f"   Saving score data...")
     score_data = {
         'user_id': athlete_id,
         'username': person.display_name,
         'score': person.score.score,
         'improvement': person.score.improvement,
         'total_workouts': person.total_workouts,
-        'badge_points': person.badges.get_points(),
-        'challenge_points': person.weekly_challenges.get_points(),
+        'badge_points': badge_points,
+        'challenge_points': challenge_points,
         'streak': person.streak
     }
     storage.save_score(athlete_id, score_data)
+    print(f"[SUCCESS] Score data saved")
     
-    return jsonify({
+    print(f"\n[RESPONSE] Preparing response...")
+    response_data = {
         "message": "Sync successful!",
         "metrics": {
             "total_workouts": person.total_workouts,
@@ -331,7 +431,12 @@ def sync_data():
             "score": person.score.score,
             "improvement": round(person.score.improvement, 2)
         }
-    })
+    }
+    print(f"[SUCCESS] Response data:")
+    print(f"   {json.dumps(response_data, indent=2)}")
+    print("="*80 + "\n")
+    
+    return jsonify(response_data)
 
 # ============================================================================
 # API ENDPOINTS FOR FRONTEND
@@ -340,23 +445,52 @@ def sync_data():
 @app.route("/api/profile")
 def get_profile():
     """Get user profile data"""
+    print("\n" + "="*80)
+    print("[PROFILE] Loading profile data")
+    print("="*80)
+    
     try:
         _, athlete_id = get_valid_token()
+        print(f"[SUCCESS] Token validated")
+        print(f"   Athlete ID: {athlete_id}")
     except Exception as e:
+        print(f"[ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
+    print(f"\n[STORAGE] Loading user data from storage...")
     user_data = storage.get_user(athlete_id)
     if not user_data:
+        print(f"[ERROR] User not found in storage (ID: {athlete_id})")
         return jsonify({"error": "User not found"}), 404
     
+    print(f"[SUCCESS] User data loaded:")
+    print(f"   Keys in user_data: {list(user_data.keys())}")
+    print(f"   Name: {user_data.get('name')}")
+    print(f"   Username: {user_data.get('username')}")
+    print(f"   Total workouts: {user_data.get('total_workouts', 'NOT SET')}")
+    print(f"   Total distance: {user_data.get('total_distance', 'NOT SET')}")
+    print(f"   Streak: {user_data.get('streak', 'NOT SET')}")
+    
+    print(f"\n[STORAGE] Loading score data from storage...")
     score_data = storage.get_score(athlete_id)
+    if score_data:
+        print(f"[SUCCESS] Score data loaded:")
+        print(f"   Score: {score_data.get('score')}")
+        print(f"   Improvement: {score_data.get('improvement')}")
+    else:
+        print(f"[WARNING] No score data found for user {athlete_id}")
     
     # Calculate pace
+    print(f"\n[CALC] Calculating metrics...")
     total_distance_km = user_data.get('total_distance', 0) / 1000
     total_time_min = user_data.get('total_moving_time', 0) / 60
     avg_pace = total_time_min / total_distance_km if total_distance_km > 0 else 0
     
-    return jsonify({
+    print(f"   Total distance: {total_distance_km:.2f} km")
+    print(f"   Total time: {total_time_min:.1f} min")
+    print(f"   Average pace: {avg_pace:.2f} min/km")
+    
+    profile_response = {
         "name": user_data.get('name', 'Unknown'),
         "username": user_data.get('username', 'unknown'),
         "location": user_data.get('location', ''),
@@ -368,7 +502,13 @@ def get_profile():
             "streak": user_data.get('streak', 0),
             "score": score_data.get('score', 0) if score_data else 0
         }
-    })
+    }
+    
+    print(f"\n[RESPONSE] Sending profile response:")
+    print(f"   {json.dumps(profile_response, indent=2)}")
+    print("="*80 + "\n")
+    
+    return jsonify(profile_response)
 
 @app.route("/api/leaderboard")
 def get_leaderboard():
