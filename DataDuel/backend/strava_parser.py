@@ -56,13 +56,21 @@ class StravaParser:
         Returns:
             Dictionary of aggregated metrics, or None if no running activities
         """
+        print(f"      [PARSER] StravaParser.parse_activities() called")
+        print(f"         Total activities received: {len(activities_data)}")
+        
         # Filter for running activities only
         running_activities = [
             activity for activity in activities_data
             if activity.get('type') in ['Run', 'VirtualRun', 'TrailRun']
         ]
         
+        print(f"         Running activities found: {len(running_activities)}")
+        if running_activities:
+            print(f"         Sample activity types: {[a.get('type') for a in running_activities[:3]]}")
+        
         if not running_activities:
+            print(f"         [ERROR] No running activities to parse")
             return None
         
         # Reset totals before aggregating
@@ -98,11 +106,16 @@ class StravaParser:
             person.elapsed_time += activity.get('elapsed_time', 0) or moving_time
         
         # Calculate baseline averages
+        print(f"         [CALC] Calculating baselines...")
         if person.total_workouts > 0:
             person.baseline_average_speed = person.total_average_speed / person.total_workouts
             person.baseline_max_speed = person.total_max_speed / person.total_workouts
             person.baseline_distance = person.total_distance / person.total_workouts
             person.baseline_moving_time = person.total_moving_time / person.total_workouts
+            print(f"         [SUCCESS] Baselines calculated:")
+            print(f"            Baseline distance: {person.baseline_distance:.0f}m")
+            print(f"            Baseline moving time: {person.baseline_moving_time:.0f}s")
+            print(f"            Baseline avg speed: {person.baseline_average_speed:.2f}m/s")
             
             # Average optional metrics
             if person.average_cadence > 0:

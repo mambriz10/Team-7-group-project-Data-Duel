@@ -42,15 +42,35 @@ class DataStorage:
     # User operations
     def get_user(self, user_id):
         """Get user data by ID"""
+        print(f"      [STORAGE] DataStorage.get_user() called")
+        print(f"         User ID: {user_id}")
+        
         users = self._read_file(self.users_file)
-        return users.get(str(user_id))
+        print(f"         Available users in storage: {list(users.keys())}")
+        
+        user_data = users.get(str(user_id))
+        if user_data:
+            print(f"         [SUCCESS] User found, keys: {list(user_data.keys())}")
+        else:
+            print(f"         [ERROR] User NOT found")
+        
+        return user_data
     
     def save_user(self, user_id, user_data):
         """Save or update user data"""
+        print(f"      [STORAGE] DataStorage.save_user() called")
+        print(f"         User ID: {user_id}")
+        print(f"         User data keys: {list(user_data.keys())}")
+        
         users = self._read_file(self.users_file)
+        print(f"         Existing users in storage: {list(users.keys())}")
+        
         users[str(user_id)] = user_data
         users[str(user_id)]['updated_at'] = datetime.now().isoformat()
+        
         self._write_file(self.users_file, users)
+        print(f"         [SUCCESS] User data written to {self.users_file}")
+        print(f"         Total users in storage: {len(users)}")
     
     def get_all_users(self):
         """Get all users"""
@@ -79,15 +99,32 @@ class DataStorage:
     # Score operations
     def get_score(self, user_id):
         """Get score data for a specific user"""
+        print(f"      [STORAGE] DataStorage.get_score() called")
+        print(f"         User ID: {user_id}")
+        
         scores = self._read_file(self.scores_file)
-        return scores.get(str(user_id))
+        score_data = scores.get(str(user_id))
+        
+        if score_data:
+            print(f"         [SUCCESS] Score found: {score_data.get('score')}")
+        else:
+            print(f"         [ERROR] Score NOT found")
+        
+        return score_data
     
     def save_score(self, user_id, score_data):
         """Save score data for a user"""
+        print(f"      [STORAGE] DataStorage.save_score() called")
+        print(f"         User ID: {user_id}")
+        print(f"         Score: {score_data.get('score')}")
+        print(f"         Improvement: {score_data.get('improvement')}")
+        
         scores = self._read_file(self.scores_file)
         scores[str(user_id)] = score_data
         scores[str(user_id)]['updated_at'] = datetime.now().isoformat()
         self._write_file(self.scores_file, scores)
+        
+        print(f"         [SUCCESS] Score data written to {self.scores_file}")
     
     def get_all_scores(self):
         """Get all scores for leaderboard"""
