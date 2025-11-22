@@ -58,7 +58,8 @@
             </section>
     </main>
 
-    <script>
+    <script type="module">
+        const BACKEND_URL = "http://127.0.0.1:5000";
         const clientIdInput = document.getElementById("client-id");
         const clientSecretInput = document.getElementById("client-secret");
         const connectBtn = document.getElementById("connectStrava");
@@ -68,7 +69,7 @@
 
             const clientId = clientIdInput.value;
             const clientSecret = clientSecretInput.value;
-            const res =  await fetch("http://127.0.0.1:5000/save-strava-credentials", {
+            const res =  await fetch(`${BACKEND_URL}/save-strava-credentials`, {
                 method: "POST",
                 headers: {"content-Type": "application/json"},
                 body: JSON.stringify({clientId, clientSecret})

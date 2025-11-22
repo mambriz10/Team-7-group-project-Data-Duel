@@ -16,6 +16,8 @@ from route_generator import SimpleRouteGenerator
 from Person import Person
 from Score import Score
 from datetime import datetime
+from supabase_stravaDB.strava_user import save_credentials, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET
+
 
 load_dotenv()
 
@@ -29,7 +31,7 @@ storage = DataStorage()
 CREDENTIALS_FILE = "credentials.json"
 # CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
 # CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
-REDIRECT_URI = "http://localhost:5000/auth/strava/callback" #os.getenv("REDIRECT_URI") #WHAT IS THIS ? fix this.
+REDIRECT_URI = "http://127.0.0.1:5000/auth/strava/callback" #os.getenv("REDIRECT_URI") #WHAT IS THIS ? fix this.
 
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
@@ -276,6 +278,16 @@ def get_valid_token():
         print("New access token saved.")
 
     return tokens["access_token"], tokens.get("athlete_id")
+
+@app.route("/api/add-user-info", methods=["POST"])
+def add_user_info():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return jsonify({"error": "Missing authorization header"}), 401
+
+    token = auth_header.split(" ")[1]  # 'Bearer <token>'
+
+    
 
 # ============================================================================
 # STRAVA DATA ENDPOINTS

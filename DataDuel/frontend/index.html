@@ -25,6 +25,8 @@
         <a class="btn" href="profile.html">My Profile</a>
         <button id="syncBtn" class="btn" style="display:none;">Sync Activities</button>
       </div>
+
+      <div id="activitiesOutput"></div>
     </section>
   </main>
   
@@ -89,6 +91,46 @@
     
     // Check status on load
     checkStatus();
+
+    async function testStravaActivities() {
+      const output = document.getElementById("activitiesOutput");
+      output.textContent = "Loading activities...\n";
+
+      try {
+        const res = await fetch("http://127.0.0.1:5000/strava/activities");
+
+        if (!res.ok) {
+          output.textContent = `Error: ${res.status}`;
+          return;
+        }
+
+        const data = await res.json();
+        output.textContent = JSON.stringify(data, null, 2);
+
+        const updateRes = await fetch("http://127.0.0.1:5000/person/update-activities", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ activities: data })
+        });
+        const json = await updateRes.json();
+        console.log(json);
+
+        // const flattened = Object.values(data).flat();  // array of all activity objects
+        //       await fetch("http://127.0.0.1:5000/person/update-activities", {
+        //       method: "POST",
+        //       headers: { "Content-Type": "application/json" },
+        //       body: JSON.stringify({ activities: flattened })
+        //   });
+        // Pretty print JSON
+        
+
+        console.log("Activities received:", data);
+        return data;
+      } catch (err) {
+        output.textContent = "Request failed: " + err.message;
+      }
+    }
+    testStravaActivities();
   </script>
 </body>
 </html>
