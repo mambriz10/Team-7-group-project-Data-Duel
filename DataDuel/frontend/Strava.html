@@ -59,6 +59,9 @@
     </main>
 
     <script type="module">
+
+        import { db } from "/strava_user_frontend.js";
+
         const BACKEND_URL = "http://127.0.0.1:5000";
         const clientIdInput = document.getElementById("client-id");
         const clientSecretInput = document.getElementById("client-secret");
@@ -69,10 +72,16 @@
 
             const clientId = clientIdInput.value;
             const clientSecret = clientSecretInput.value;
+            const { data: { session } } = await db.auth.getSession();
+
             const res =  await fetch(`${BACKEND_URL}/save-strava-credentials`, {
                 method: "POST",
                 headers: {"content-Type": "application/json"},
-                body: JSON.stringify({clientId, clientSecret})
+                body: JSON.stringify({
+                    clientId,
+                    clientSecret,
+                    access_token: session.access_token
+                })
             });
             
             if (res.ok) {

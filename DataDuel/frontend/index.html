@@ -26,7 +26,7 @@
         <button id="syncBtn" class="btn" style="display:none;">Sync Activities</button>
       </div>
 
-      <div id="activitiesOutput"></div>
+      <!-- <div id="activitiesOutput"></div> -->
     </section>
   </main>
   
@@ -44,7 +44,8 @@
 
   <script src="api.js"></script>
   <script src="script.js"></script>
-  <script>
+  <script type ="module">
+
     async function checkStatus() {
       try {
         const status = await api.getStatus();
@@ -92,7 +93,10 @@
     // Check status on load
     checkStatus();
 
+    import { db } from "/strava_user_frontend.js";
     async function testStravaActivities() {
+
+      
       const output = document.getElementById("activitiesOutput");
       output.textContent = "Loading activities...\n";
 
@@ -104,14 +108,24 @@
           return;
         }
 
-        const data = await res.json();
-        output.textContent = JSON.stringify(data, null, 2);
+        const activities = await res.json();
+        output.textContent = JSON.stringify(activities, null, 2);
 
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) {
+            console.error("No active session found!");
+            return;
+        }
+        console.log(activities)
         const updateRes = await fetch("http://127.0.0.1:5000/person/update-activities", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ activities: data })
+            body: JSON.stringify({ 
+              activities: activities, 
+              access_token: session.access_token 
+            })
         });
+
         const json = await updateRes.json();
         console.log(json);
 
@@ -124,8 +138,7 @@
         // Pretty print JSON
         
 
-        console.log("Activities received:", data);
-        return data;
+        return activities;
       } catch (err) {
         output.textContent = "Request failed: " + err.message;
       }

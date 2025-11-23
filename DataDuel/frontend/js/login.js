@@ -14,7 +14,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     }
 
     // Real login — done by Supabase
-    const { data, error } = await db.auth.signInWithPassword({
+    const { data: {user}, error } = await db.auth.signInWithPassword({
         email,
         password
     });
@@ -25,10 +25,11 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
         return;
     }
 
+    
     // Optional: remember me
-    if (remember) {
-        localStorage.setItem("supabase_session", JSON.stringify(data.session));
-    }
+    // if (remember) {
+    //     localStorage.setItem("supabase_session", JSON.stringify(data.session));
+    // }
 
 
     window.location.href = "http://localhost:5500/index.html"; // redirect to login
