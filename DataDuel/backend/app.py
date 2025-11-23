@@ -16,7 +16,7 @@ from route_generator import SimpleRouteGenerator
 from Person import Person
 from Score import Score
 from datetime import datetime
-from supabase_stravaDB.strava_user import save_credentials, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET
+from supabase_stravaDB.strava_user import fetch_person_response, save_credentials_new, save_credentials, insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET
 
 
 load_dotenv()
@@ -51,6 +51,9 @@ def save_strava_credentials():
     data = request.get_json()
     client_id = data.get("clientId")
     client_secret = data.get("clientSecret")
+    access_token = data.get("access_token")
+
+    save_credentials_new(client_id, client_secret, access_token)
 
     if not client_id or not client_secret:
         return jsonify({"error": "Missing client_id or client_secret"}), 400
@@ -287,7 +290,7 @@ def add_user_info():
 
     token = auth_header.split(" ")[1]  # 'Bearer <token>'
 
-    
+
 
 # ============================================================================
 # STRAVA DATA ENDPOINTS
@@ -344,9 +347,97 @@ def get_activities():
 
         # Add to appropriate weekday
         activities_by_day[weekday].append(activity_info)
-
+    #print(activities_by_day)
     return jsonify(activities_by_day)
 
+def flatten_weekly_activities(weekly_data: dict):
+    all_activities = []
+    for day_activities in weekly_data.values():
+        # Only include dicts
+        all_activities.extend([act for act in day_activities if isinstance(act, dict)])
+    return all_activities
+
+
+@app.route("/person/update-activities", methods=["POST"])
+def update_person_activities():
+    """
+    Receive Strava activities from frontend and update Person instance,
+    then store the response in the DB.
+    """
+    payload = request.get_json()
+    
+    data = payload["activities"]
+    access_token = payload["access_token"]
+    
+    #print(f"this is data: \n{data}")
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Flatten the JSON data
+    activities_list = flatten_weekly_activities(data)
+    
+    if not activities_list:
+        return jsonify({"error": "No activities found"}), 400
+
+    # Create a new Person instance
+    person = Person()
+    
+    # Parse activities
+    StravaParser.parse_activities_new(activities_list, person)
+    
+    # Calculate streak
+    person.streak = StravaParser.calculate_streak(activities_list)
+    
+    # Check badges
+    StravaParser.check_badges(person)
+    
+    # Check weekly challenges
+    StravaParser.check_challenges(person, activities_list)
+    
+    # Prepare response dictionary
+    response_data = {
+        "username": person.display_name,
+        "total_workouts": person.total_workouts,
+        "total_distance": person.total_distance,
+        "average_speed": person.average_speed,
+        "max_speed": person.max_speed,
+        "streak": person.streak,
+        "badges": {
+            "moving_time": person.badges.moving_time,
+            "distance": person.badges.distance,
+            "max_speed": person.badges.max_speed
+        },
+        "weekly_challenges": {
+            "first_challenge": person.weekly_challenges.first_challenge,
+            "second_challenge": person.weekly_challenges.second_challenge,
+            "third_challenge": person.weekly_challenges.third_challenge
+        }
+    }
+
+    #print(response_data)
+    
+    # Store in DB
+    try:
+        insert_person_response(response_data, access_token)
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to insert into DB: {str(e)}"}), 500
+
+    return jsonify(response_data), 200
+
+@app.route("/person/get-activities", methods=["POST"])
+def get_person_activities():
+    payload = request.get_json()
+    
+    
+    access_token = payload["access_token"]
+
+    data = fetch_person_response(access_token)
+    if not data:
+        return jsonify({"error": "No activity data found"}), 404
+
+    return jsonify(data), 200
+    
 @app.route("/api/sync", methods=["POST", "GET"])
 def sync_data():
     """Sync Strava data and calculate scores"""
@@ -512,6 +603,8 @@ def sync_data():
     print("="*80 + "\n")
     
     return jsonify(response_data)
+
+
 
 # ============================================================================
 # API ENDPOINTS FOR FRONTEND

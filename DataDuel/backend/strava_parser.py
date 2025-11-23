@@ -142,6 +142,89 @@ class StravaParser:
         }
     
     @staticmethod
+    def parse_activities_new(activities_dict, person):
+        """
+        Parse Strava activities from a weekday-keyed dictionary and update a Person object.
+        
+        Args:
+            activities_dict: Dict with days as keys and list of activities as values
+            person: Person instance to update
+            
+        Returns:
+            Aggregated metrics dict or None if no running activities
+        """
+        # print(activities_dict)
+
+        if not activities_dict or not isinstance(activities_dict, list):
+            print("[ERROR] Invalid activities data")
+            return None
+
+        # Flatten the dict into a single list of activities
+        activities_list = activities_dict
+
+        # Filter for running activities only
+        running_activities = [
+            activity for activity in activities_list
+            if activity.get('type', 'Run') in ['Run', 'VirtualRun', 'TrailRun']  # default 'Run' if no type
+        ]
+
+        if not running_activities:
+            print("[WARNING] No running activities found")
+            return None
+
+        # Reset totals
+        person.total_workouts = 0
+        person.total_distance = 0
+        person.total_moving_time = 0
+        person.total_average_speed = 0
+        person.total_max_speed = 0
+        person.total_elevation = 0
+        person.average_cadence = 0
+        person.average_heartrate = 0
+        person.elapsed_time = 0
+
+        for activity in running_activities:
+            person.total_workouts += 1
+            distance = activity.get('distance', 0)
+            moving_time = activity.get('moving_time', activity.get('elapsed_time', 0))
+            average_speed = activity.get('average_speed', 0)
+            max_speed = activity.get('max_speed', 0)
+
+            person.total_distance += distance
+            person.total_moving_time += moving_time
+            person.total_average_speed += average_speed
+            person.total_max_speed += max_speed
+            person.total_elevation += activity.get('total_elevation_gain', 0)
+            person.average_cadence += activity.get('average_cadence', 0) or 0
+            person.average_heartrate += activity.get('average_heartrate', 0) or 0
+            person.elapsed_time += activity.get('elapsed_time', 0) or moving_time
+
+        # Compute averages
+        if person.total_workouts > 0:
+            person.baseline_average_speed = person.total_average_speed / person.total_workouts
+            person.baseline_max_speed = person.total_max_speed / person.total_workouts
+            person.baseline_distance = person.total_distance / person.total_workouts
+            person.baseline_moving_time = person.total_moving_time / person.total_workouts
+            person.average_cadence /= person.total_workouts
+            person.average_heartrate /= person.total_workouts
+            person.elapsed_time /= person.total_workouts
+            person.total_elevation /= person.total_workouts
+
+        # Current period metrics
+        person.average_speed = person.baseline_average_speed
+        person.max_speed = person.baseline_max_speed
+        person.distance = person.baseline_distance
+        person.moving_time = person.baseline_moving_time
+
+        return {
+            "total_workouts": person.total_workouts,
+            "total_distance": person.total_distance,
+            "total_moving_time": person.total_moving_time,
+            "average_speed": person.average_speed,
+            "max_speed": person.max_speed
+        }
+    
+    @staticmethod
     def calculate_streak(activities_data):
         """
         Calculate consecutive days with activities
