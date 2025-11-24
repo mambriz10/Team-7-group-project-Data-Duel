@@ -101,9 +101,11 @@ def insert_person_response(person_response: dict, access_token: str):
     except Exception as e:
         raise ValueError(f"Invalid access token or user not found: {str(e)}")
     
-    # 2. Prepare the fields to update (exclude client_id/client_secret)
+    data = fetch_person_response(access_token)
+    print("this is the data:\n" + data["username"])
+    
     update_data = {
-        "username": person_response.get("username"),
+        "username": data["username"],
         "total_workouts": person_response.get("total_workouts"),
         "total_distance": person_response.get("total_distance"),
         "average_speed": person_response.get("average_speed"),
@@ -115,7 +117,9 @@ def insert_person_response(person_response: dict, access_token: str):
 
     # 3. Update the user's record
     try:
+        print("before the db update in inserting")
         response = db.table("user_strava").update(update_data).eq("user_id", user_id).execute()
+
     except Exception as e:
         raise RuntimeError(f"Failed to update user activities in DB: {str(e)}")
     
@@ -127,26 +131,111 @@ def fetch_person_response(access_token: str):
     Returns only the activity summary, excluding sensitive fields.
     """
     try:
-        # Get the user from Supabase using the access token
-        user = db.auth.get_user(access_token).user
+        # Get the user from Supabase Auth
+        auth_response = db.auth.get_user(access_token)
+        
+        # if auth_response.error:
+        #     raise RuntimeError(f"Auth error: {auth_response.error.message}")
+
+        user = auth_response.user
         user_id = user.id
 
-        # Fetch the stored row
-        result = db.table("user_strava").select("*").eq("user_id", user_id).single().execute()
-        if not result.data:
-            return None
+        # Fetch the row from user_strava safely
+        #print("before")
+        result = db.table("user_strava").select("*").eq("user_id", user_id).maybe_single().execute()
+        #print("before")
+        ret = result.data
+        print("this is the from fetch_person_response : " + str(ret))
+        # if result.error:
+        #     raise RuntimeError(f"DB error: {result.error.message}")
 
-        data = result.data
+        # if not result.data:
+        #     return None
 
-        # Remove sensitive fields before returning
-        for field in ["client_id", "client_secret"]:
-            if field in data:
-                del data[field]
+        # data = result.data
 
-        return data
+        # # Remove sensitive fields
+        # for field in ["client_id", "client_secret"]:
+        #     data.pop(field, None)
+
+        return ret
 
     except Exception as e:
         raise RuntimeError(f"Failed to fetch data from DB: {str(e)}")
+
+    
+def insert_user_profile( user_id, username, email):
+
+    """
+    Insert a new user profile into user_strava.
+    """
+    try:
+        response = db.table("user_strava").insert({
+            "user_id": user_id,
+            "username": username,
+            "email": email
+        }).execute()
+
+        return response
+
+    except Exception as e:
+        return str(e)
+
+def add_friend(user_id: str, friend_id: str):
+    """
+    Add a friend for a user.
+    """
+    try:
+        response = db.table("friends").insert({
+            "user_id": user_id,
+            "friend_id": friend_id
+        }).execute()
+
+
+        return None
+    except Exception as e:
+        return str(e)
+    
+def get_friends_user(user_id: str):
+    """
+    Return list of friends' user_ids.
+    """
+    try:
+        response = (
+            db.table("friends")
+            .select("friend_id")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        return response.data, None
+    except Exception as e:
+        return None, str(e)
+
+
+def get_friend_profiles(friend_ids: list[str]):
+    """
+    Get full profile info for a list of UUIDs from user_strava.
+    """
+    if not friend_ids:
+        return [], None
+
+    try:
+        response = (
+            db.table("user_strava")
+            .select("*")
+            .in_("user_id", friend_ids)
+            .execute()
+        )
+
+        print("this is get_friend_profiles:" + str(response.data))
+        return response.data, None
+    
+    except Exception as e:
+        return None, str(e)
+    
+
+
 
 # Load local credentials on import
 load_local_credentials()

@@ -17,7 +17,7 @@ from route_generator import SimpleRouteGenerator
 from Person import Person
 from Score import Score
 from datetime import datetime
-from supabase_stravaDB.strava_user import fetch_person_response, save_credentials_new, save_credentials, insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET
+from supabase_stravaDB.strava_user import get_friend_profiles, get_friends_user, add_friend, insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET
 
 
 load_dotenv()
@@ -370,7 +370,7 @@ def update_person_activities():
     
     data = payload["activities"]
     access_token = payload["access_token"]
-    
+    print("accessToken: " + access_token)
     #print(f"this is data: \n{data}")
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -426,6 +426,58 @@ def update_person_activities():
         return jsonify({"error": f"Failed to insert into DB: {str(e)}"}), 500
 
     return jsonify(response_data), 200
+
+
+##FRIENDS###
+@app.route("/friends/add", methods=["POST"])
+def add_friend_route():
+    data = request.get_json()
+    access_token = data.get("access_token")
+    friend_id = data.get("friend_id")
+
+    if not access_token or not friend_id:
+        return jsonify({"error": "Missing fields"}), 400
+
+    # who is adding the friend?
+    user = fetch_person_response(access_token)
+    if not user:
+        return jsonify({"error": "Invalid access token"}), 401
+
+    user_id = user["user_id"]
+
+    # store friendship
+    error = add_friend(user_id, friend_id)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({"message": "Friend added!"}), 200
+
+@app.route("/friends/list", methods=["POST"])
+def list_friends_route():
+    data = request.get_json()
+    access_token = data.get("access_token")
+
+    if not access_token:
+        return jsonify({"error": "Missing access token"}), 400
+
+    user = fetch_person_response(access_token)
+    if not user:
+        return jsonify({"error": "Invalid access token"}), 401
+
+    user_id = user["user_id"]
+
+    # Get friend IDs
+    friends, error = get_friends_user(user_id)
+    print("friends: " + str(friends))
+
+    friend_ids = [f["friend_id"] for f in friends]
+
+    # Get full profiles
+    profiles = get_friend_profiles(friend_ids)
+    
+
+    return jsonify({"friends": profiles}), 200
+
 
 @app.route("/person/get-activities", methods=["POST"])
 def get_person_activities():
@@ -606,6 +658,22 @@ def sync_data():
     
     return jsonify(response_data)
 
+@app.route("/register", methods=["POST"])
+def register_route():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    username = data.get("username")
+    email = data.get("email")
+
+    if not username or not email:
+        return jsonify({"error": "Missing fields"}), 400
+
+    error = insert_user_profile(user_id, username, email)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({"message": "User created successfully!"}), 200
 
 
 # ============================================================================
