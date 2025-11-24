@@ -11,6 +11,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from data_storage import DataStorage
+from friends_storage import FriendsStorage
 from strava_parser import StravaParser
 from route_generator import SimpleRouteGenerator
 from Person import Person
@@ -27,6 +28,7 @@ CORS(app, origins="http://localhost:5500")  # Enable CORS for frontend communica
 
 # Initialize data storage
 storage = DataStorage()
+friends_storage = FriendsStorage()
 
 CREDENTIALS_FILE = "credentials.json"
 # CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
@@ -832,6 +834,257 @@ def generate_custom_route():
         "route": route
     })
 
+# ============================================================================
+# FRIENDS ENDPOINTS
+# ============================================================================
+
+@app.route("/api/friends/search", methods=["GET"])
+def search_users():
+    """Search for users by name or username"""
+    print(f"\n[FRIENDS API] Search users endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   Authenticated user: {athlete_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    query = request.args.get("q", "").lower()
+    print(f"   Search query: '{query}'")
+    
+    if not query or len(query) < 2:
+        print(f"   [WARNING] Query too short")
+        return jsonify({"users": [], "message": "Query must be at least 2 characters"})
+    
+    all_users = storage.get_all_users()
+    print(f"   Total users in system: {len(all_users)}")
+    
+    results = []
+    for user_id, user_data in all_users.items():
+        if user_id == athlete_id:  # Don't include self
+            continue
+        
+        name = user_data.get('name', '').lower()
+        username = user_data.get('username', '').lower()
+        
+        if query in name or query in username:
+            # Check friendship status
+            status = friends_storage.get_friend_status(athlete_id, user_id)
+            
+            results.append({
+                "user_id": user_id,
+                "name": user_data.get('name', 'Unknown'),
+                "username": user_data.get('username', 'unknown'),
+                "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
+                "location": user_data.get('location', ''),
+                "friendship_status": status
+            })
+    
+    print(f"   [SUCCESS] Found {len(results)} matching users")
+    return jsonify({"users": results, "count": len(results)})
+
+@app.route("/api/friends/request", methods=["POST"])
+def send_friend_request():
+    """Send a friend request"""
+    print(f"\n[FRIENDS API] Send friend request endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   From user: {athlete_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    friend_id = data.get("friend_id")
+    
+    print(f"   To user: {friend_id}")
+    
+    if not friend_id:
+        print(f"   [ERROR] Missing friend_id")
+        return jsonify({"error": "Missing friend_id parameter"}), 400
+    
+    # Verify the target user exists
+    target_user = storage.get_user(friend_id)
+    if not target_user:
+        print(f"   [ERROR] Target user not found")
+        return jsonify({"error": "User not found"}), 404
+    
+    result = friends_storage.send_request(athlete_id, friend_id)
+    
+    if "error" in result:
+        print(f"   [ERROR] {result['error']}")
+        return jsonify(result), 400
+    
+    print(f"   [SUCCESS] Friend request sent")
+    return jsonify(result)
+
+@app.route("/api/friends/accept/<friend_id>", methods=["POST"])
+def accept_friend_request(friend_id):
+    """Accept a friend request"""
+    print(f"\n[FRIENDS API] Accept friend request endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   User: {athlete_id}")
+        print(f"   Accepting: {friend_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    result = friends_storage.accept_request(athlete_id, friend_id)
+    
+    if "error" in result:
+        print(f"   [ERROR] {result['error']}")
+        return jsonify(result), 400
+    
+    print(f"   [SUCCESS] Friend request accepted")
+    return jsonify(result)
+
+@app.route("/api/friends/reject/<friend_id>", methods=["POST"])
+def reject_friend_request(friend_id):
+    """Reject a friend request"""
+    print(f"\n[FRIENDS API] Reject friend request endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   User: {athlete_id}")
+        print(f"   Rejecting: {friend_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    result = friends_storage.reject_request(athlete_id, friend_id)
+    
+    if "error" in result:
+        print(f"   [ERROR] {result['error']}")
+        return jsonify(result), 400
+    
+    print(f"   [SUCCESS] Friend request rejected")
+    return jsonify(result)
+
+@app.route("/api/friends/remove/<friend_id>", methods=["DELETE"])
+def remove_friend(friend_id):
+    """Remove a friend (unfriend)"""
+    print(f"\n[FRIENDS API] Remove friend endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   User: {athlete_id}")
+        print(f"   Removing: {friend_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    result = friends_storage.remove_friend(athlete_id, friend_id)
+    
+    if "error" in result:
+        print(f"   [ERROR] {result['error']}")
+        return jsonify(result), 400
+    
+    print(f"   [SUCCESS] Friend removed")
+    return jsonify(result)
+
+@app.route("/api/friends", methods=["GET"])
+def get_friends_list():
+    """Get current user's friends with their data"""
+    print(f"\n[FRIENDS API] Get friends list endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   User: {athlete_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    friend_ids = friends_storage.get_friends(athlete_id)
+    all_users = storage.get_all_users()
+    
+    friends = []
+    for friend_id in friend_ids:
+        user_data = all_users.get(friend_id, {})
+        score_data = storage.get_score(friend_id)
+        
+        # Calculate average run distance
+        total_workouts = user_data.get('total_workouts', 0)
+        total_distance = user_data.get('total_distance', 0)
+        avg_distance = (total_distance / total_workouts / 1000) if total_workouts > 0 else 0
+        
+        friends.append({
+            "user_id": friend_id,
+            "name": user_data.get('name', 'Unknown'),
+            "username": user_data.get('username', 'unknown'),
+            "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={friend_id}'),
+            "location": user_data.get('location', ''),
+            "total_workouts": total_workouts,
+            "last_run_distance": round(avg_distance, 1),
+            "improvement": round(score_data.get('improvement', 0), 1) if score_data else 0,
+            "streak": user_data.get('streak', 0),
+            "score": score_data.get('score', 0) if score_data else 0
+        })
+    
+    print(f"   [SUCCESS] Returning {len(friends)} friends")
+    return jsonify({"friends": friends, "count": len(friends)})
+
+@app.route("/api/friends/requests", methods=["GET"])
+def get_friend_requests():
+    """Get pending friend requests (incoming)"""
+    print(f"\n[FRIENDS API] Get friend requests endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   User: {athlete_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    pending_ids = friends_storage.get_pending_requests(athlete_id)
+    all_users = storage.get_all_users()
+    
+    requests = []
+    for user_id in pending_ids:
+        user_data = all_users.get(user_id, {})
+        requests.append({
+            "user_id": user_id,
+            "name": user_data.get('name', 'Unknown'),
+            "username": user_data.get('username', 'unknown'),
+            "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
+            "location": user_data.get('location', '')
+        })
+    
+    print(f"   [SUCCESS] Returning {len(requests)} pending requests")
+    return jsonify({"requests": requests, "count": len(requests)})
+
+@app.route("/api/friends/sent", methods=["GET"])
+def get_sent_requests():
+    """Get outgoing friend requests (pending)"""
+    print(f"\n[FRIENDS API] Get sent requests endpoint called")
+    
+    try:
+        _, athlete_id = get_valid_token()
+        print(f"   User: {athlete_id}")
+    except Exception as e:
+        print(f"   [ERROR] Not authenticated: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    sent_ids = friends_storage.get_sent_requests(athlete_id)
+    all_users = storage.get_all_users()
+    
+    sent = []
+    for user_id in sent_ids:
+        user_data = all_users.get(user_id, {})
+        sent.append({
+            "user_id": user_id,
+            "name": user_data.get('name', 'Unknown'),
+            "username": user_data.get('username', 'unknown'),
+            "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
+            "location": user_data.get('location', '')
+        })
+    
+    print(f"   [SUCCESS] Returning {len(sent)} sent requests")
+    return jsonify({"sent": sent, "count": len(sent)})
+
 # @app.post("/api/login")
 # def login():
 #     data = request.get_json()
@@ -854,4 +1107,15 @@ def generate_custom_route():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # Get PORT from environment variable for cloud deployment (Render, Heroku, etc.)
+    port = int(os.environ.get("PORT", 5000))
+    
+    # Determine if we're in production
+    is_production = os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT")
+    
+    # Use 0.0.0.0 to allow external connections (required for cloud deployment)
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=not is_production  # Disable debug in production
+    )

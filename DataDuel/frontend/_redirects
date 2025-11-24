@@ -1,0 +1,16 @@
+# CloudFlare Pages Redirects Configuration
+
+# SPA-like routing - serve index.html for all routes (optional)
+# Uncomment if you want all routes to serve index.html
+# /*    /index.html   200
+
+# Force HTTPS (optional - CloudFlare does this by default)
+# http://:host/*  https://:host/:splat  301
+
+# API proxy to backend (update URL after backend deployment)
+# This allows you to call /api/* from frontend and proxy to backend
+# /api/*  https://dataduel-backend.onrender.com/api/:splat  200
+
+# Custom 404 page (optional)
+# /*    /404.html   404
+
