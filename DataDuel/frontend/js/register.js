@@ -18,15 +18,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             // Register user with Supabase Auth
-            const { data, error } = await db.auth.signUp({ email, password });
-            //const accessToken = data.session.accessToken;
-            
-
-            if (error) {
-                alert("Registration failed: " + error.message);
+            const { data: authData, error: authError } = await db.auth.signUp({ email, password });
+            if (authError) {
+                alert(authError.message);
                 return;
             }
 
+            const userId = authData.user.id;
+            //const accessToken = data.session.accessToken;
+            const response = await fetch("http://127.0.0.1:5000/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: userId,
+                    username: name,
+                    email
+                }),
+            });
+
+            // If backend returned a JSON error, parse it
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                // Backend sent an error message
+                alert(result.error || "Something went wrong.");
+                return;
+            }
             // Registration succeeded, optionally reset form
             form.reset();
             
