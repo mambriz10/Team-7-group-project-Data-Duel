@@ -1,0 +1,10 @@
+name = "dataduel"
+compatibility_date = "2025-11-24"
+pages_build_output_dir = "DataDuel/frontend"
+
+# Cloudflare Pages configuration for DataDuel
+# This tells Cloudflare where to find the static files to deploy
+
+[site]
+bucket = "./DataDuel/frontend"
+
