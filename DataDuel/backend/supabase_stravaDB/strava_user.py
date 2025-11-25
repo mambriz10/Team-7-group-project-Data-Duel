@@ -532,6 +532,129 @@ def get_friends_user(user_id: str):
     print("[SUPABASE FRIENDS] WARNING: Using deprecated get_friends_user(). Use get_friends_list() instead.")
     return get_friends_list(user_id)
     
+def create_leaderboard(user_access_token: str, name: str, metric: str, members: list[str]):
+    """
+    Create a leaderboard and add members to it.
+    
+    Args:
+        user_access_token: Access token of the user creating the leaderboard
+        name: Name of the leaderboard
+        metric: The metric used for the leaderboard (e.g., total_distance)
+        members: List of user_ids to add (should include creator)
+
+    Returns:
+        dict: {"leaderboard_id": str} on success
+        tuple: (None, str) on failure
+    """
+    try:
+        # Get the creator user
+        user = db.auth.get_user(user_access_token).user
+        if not user:
+            return None, "Invalid access token"
+
+        # Insert leaderboard
+        lb = db.table("leaderboards").insert({
+            "name": name,
+            "creator_id": user.id,
+            "metric": metric
+        }).execute()
+
+        if not lb.data or len(lb.data) == 0:
+            return None, "Failed to create leaderboard"
+
+        leaderboard_id = lb.data[0]["id"]
+
+        # Add members
+        for uid in members:
+            db.table("leaderboard_members").insert({
+                "leaderboard_id": leaderboard_id,
+                "user_id": uid
+            }).execute()
+
+        return {"leaderboard_id": leaderboard_id}, None
+
+    except Exception as e:
+        return None, str(e)
+
+def add_member_to_leaderboard(access_token: str, leaderboard_id: int, user_id_to_add: str):
+        """
+        Adds a member to a leaderboard.
+        Handles:
+            - Invalid token
+            - Leaderboard not found
+            - Caller not creator
+            - Insert errors
+        Returns: (data, error)
+        """
+        # Validate user / token
+        try:
+            caller = db.auth.get_user(access_token).user
+        except Exception:
+            return None, "Invalid access token"
+
+        if not caller:
+            return None, "Invalid access token"
+
+        caller_id = caller.id
+
+        # Check leaderboard exists
+        lb = (
+            db.table("leaderboards")
+            .select("creator_id")
+            .eq("id", leaderboard_id)
+            .execute()
+        )
+
+        if not lb.data:
+            return None, "Leaderboard does not exist"
+
+        creator_id = lb.data[0]["creator_id"]
+
+        # Only creator may add members
+        if creator_id != caller_id:
+            return None, "Only the leaderboard creator can add members"
+
+        # Insert new member
+        try:
+            db.table("leaderboard_members").insert({
+                "leaderboard_id": leaderboard_id,
+                "user_id": user_id_to_add
+            }).execute()
+
+            return {"message": "Member added successfully!"}, None
+
+        except Exception as e:
+            return None, str(e)
+
+
+def fetch_user_leaderboards(access_token):
+    user = db.auth.get_user(access_token).user
+    if not user:
+        return None, "Invalid access token"
+
+    # Fetch owned leaderboards
+    owned_resp = db.table("leaderboards").select("*").eq("creator_id", user.id).execute()
+    owned = []
+    for lb in owned_resp.data:
+        # Count members
+        members_resp = db.table("leaderboard_members").select("user_id").eq("leaderboard_id", lb["id"]).execute()
+        lb["members_count"] = len(members_resp.data)
+        owned.append(lb)
+
+    # Fetch leaderboards user joined
+    joined_resp = db.table("leaderboard_members").select("leaderboard_id").eq("user_id", user.id).execute()
+    joined = []
+    for join in joined_resp.data:
+        lb_resp = db.table("leaderboards").select("*").eq("id", join["leaderboard_id"]).execute()
+        if lb_resp.data:
+            lb_data = lb_resp.data[0]
+            # Count members
+            members_resp = db.table("leaderboard_members").select("user_id").eq("leaderboard_id", lb_data["id"]).execute()
+            lb_data["members_count"] = len(members_resp.data)
+            joined.append(lb_data)
+
+    return {"owned": owned, "joined": joined}, None
+
 
 
 
