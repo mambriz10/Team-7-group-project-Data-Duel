@@ -6,13 +6,16 @@
 # Backend: Flask API (deployed separately to Render/Heroku)
 # Database: Supabase
 #
-# NOTE: For Cloudflare Pages, most configuration is done in the dashboard.
-# This file is minimal and optional for Pages deployments.
-# Headers and redirects are handled by _headers and _redirects files.
+# IMPORTANT: Delete any "Deploy command" in Cloudflare Pages dashboard!
+# Pages deployments should NOT use "npx wrangler deploy"
 # =============================================================================
 
 name = "dataduel"
 compatibility_date = "2025-11-24"
+
+# Specify the assets directory for static file deployment
+[assets]
+directory = "DataDuel/frontend"
 
 # =============================================================================
 # CONFIGURATION NOTES FOR CLOUDFLARE PAGES
