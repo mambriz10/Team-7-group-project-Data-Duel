@@ -19,7 +19,7 @@ from Score import Score
 from datetime import datetime
 from supabase_stravaDB.strava_user import (
     # User & credentials
-    insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, 
+    add_member_to_leaderboard, insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, 
     insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET,
     # Friends system (Supabase)
     send_friend_request as supabase_send_request,
@@ -532,6 +532,58 @@ def get_person_activities():
 
     return jsonify(data), 200
     
+# creating the leaderboards;
+@app.route("/leaderboard/create", methods=["POST"])
+def create_leaderboard_route():
+    data = request.get_json()
+    access_token = data.get("access_token")
+    name = data.get("name")
+    metric = data.get("metric")
+    members = data.get("members")
+
+    if not access_token or not name or not metric or not members:
+        return jsonify({"error": "Missing fields"}), 400
+
+    result, error = create_leaderboard(access_token, name, metric, members)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({"message": "Leaderboard created!", "leaderboard_id": result["leaderboard_id"]}), 200
+
+@app.route("/leaderboard/add_member", methods=["POST"])
+def add_member_route():
+    data = request.get_json()
+
+    access_token = data.get("access_token")
+    leaderboard_id = data.get("leaderboard_id")
+    user_id = data.get("user_id")
+
+    if not access_token or not leaderboard_id or not user_id:
+        return jsonify({"error": "Missing fields"}), 400
+
+    result, error = add_member_to_leaderboard(access_token, leaderboard_id, user_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(result), 200
+
+@app.route("/leaderboards/my", methods=["POST"])
+def get_user_leaderboards_route():
+    data = request.get_json()
+    access_token = data.get("access_token")
+
+    if not access_token:
+        return jsonify({"error": "Missing access token"}), 400
+
+    leaderboards, error = fetch_user_leaderboards(access_token)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(leaderboards), 200
+
+
 @app.route("/api/sync", methods=["POST", "GET"])
 def sync_data():
     """Sync Strava data and calculate scores"""
