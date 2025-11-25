@@ -17,7 +17,23 @@ from route_generator import SimpleRouteGenerator
 from Person import Person
 from Score import Score
 from datetime import datetime
-from supabase_stravaDB.strava_user import get_friend_profiles, get_friends_user, add_friend, insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET
+from supabase_stravaDB.strava_user import (
+    # User & credentials
+    insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, 
+    insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET,
+    # Friends system (Supabase)
+    send_friend_request as supabase_send_request,
+    accept_friend_request as supabase_accept_request,
+    reject_friend_request as supabase_reject_request,
+    remove_friend as supabase_remove_friend,
+    get_friends_list as supabase_get_friends,
+    get_pending_requests as supabase_get_pending,
+    get_sent_requests as supabase_get_sent,
+    get_friend_status as supabase_get_status,
+    get_friend_profiles, search_users_by_name,
+    # Legacy (deprecated)
+    get_friends_user, add_friend
+)
 
 
 load_dotenv()
@@ -28,7 +44,7 @@ CORS(app, origins="http://localhost:5500")  # Enable CORS for frontend communica
 
 # Initialize data storage
 storage = DataStorage()
-friends_storage = FriendsStorage()
+# friends_storage = FriendsStorage()  # DEPRECATED: Now using Supabase for friends
 
 CREDENTIALS_FILE = "credentials.json"
 # CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
@@ -428,9 +444,20 @@ def update_person_activities():
     return jsonify(response_data), 200
 
 
-##FRIENDS###
+# ============================================================================
+# LEGACY FRIENDS ENDPOINTS (DEPRECATED - Use /api/friends/* instead)
+# ============================================================================
+# These endpoints use direct add (no request system)
+# Kept for backwards compatibility only
+
 @app.route("/friends/add", methods=["POST"])
 def add_friend_route():
+    """
+    DEPRECATED: Use POST /api/friends/request instead
+    Direct add friend (no request system)
+    """
+    print("[DEPRECATED] /friends/add called - use /api/friends/request instead")
+    
     data = request.get_json()
     access_token = data.get("access_token")
     friend_id = data.get("friend_id")
@@ -445,7 +472,7 @@ def add_friend_route():
 
     user_id = user["user_id"]
 
-    # store friendship
+    # store friendship (direct add - no request)
     error = add_friend(user_id, friend_id)
     if error:
         return jsonify({"error": error}), 400
@@ -454,6 +481,12 @@ def add_friend_route():
 
 @app.route("/friends/list", methods=["POST"])
 def list_friends_route():
+    """
+    DEPRECATED: Use GET /api/friends instead
+    Get friends list using old format
+    """
+    print("[DEPRECATED] /friends/list called - use GET /api/friends instead")
+    
     data = request.get_json()
     access_token = data.get("access_token")
 
@@ -466,15 +499,22 @@ def list_friends_route():
 
     user_id = user["user_id"]
 
-    # Get friend IDs
-    friends, error = get_friends_user(user_id)
-    print("friends: " + str(friends))
+    # Get friend IDs (uses deprecated function)
+    friends_data, error = get_friends_user(user_id)
+    if error:
+        return jsonify({"error": error}), 500
+        
+    print("friends: " + str(friends_data))
 
-    friend_ids = [f["friend_id"] for f in friends]
+    if not friends_data:
+        return jsonify({"friends": []}), 200
+
+    friend_ids = [f["friend_id"] for f in friends_data]  if isinstance(friends_data, list) else []
 
     # Get full profiles
-    profiles = get_friend_profiles(friend_ids)
-    
+    profiles, error = get_friend_profiles(friend_ids)
+    if error:
+        return jsonify({"error": error}), 500
 
     return jsonify({"friends": profiles}), 200
 
@@ -903,13 +943,13 @@ def generate_custom_route():
     })
 
 # ============================================================================
-# FRIENDS ENDPOINTS
+# FRIENDS ENDPOINTS (SUPABASE VERSION)
 # ============================================================================
 
 @app.route("/api/friends/search", methods=["GET"])
 def search_users():
     """Search for users by name or username"""
-    print(f"\n[FRIENDS API] Search users endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Search users endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -918,44 +958,47 @@ def search_users():
         print(f"   [ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    query = request.args.get("q", "").lower()
+    query = request.args.get("q", "")
     print(f"   Search query: '{query}'")
     
     if not query or len(query) < 2:
         print(f"   [WARNING] Query too short")
         return jsonify({"users": [], "message": "Query must be at least 2 characters"})
     
-    all_users = storage.get_all_users()
-    print(f"   Total users in system: {len(all_users)}")
+    # Search in Supabase
+    users, error = search_users_by_name(query)
+    if error:
+        print(f"   [ERROR] Search failed: {error}")
+        return jsonify({"error": error}), 500
     
     results = []
-    for user_id, user_data in all_users.items():
+    for user in users:
+        user_id = user.get('user_id')
         if user_id == athlete_id:  # Don't include self
             continue
         
-        name = user_data.get('name', '').lower()
-        username = user_data.get('username', '').lower()
+        # Check friendship status
+        status, _ = supabase_get_status(athlete_id, user_id)
         
-        if query in name or query in username:
-            # Check friendship status
-            status = friends_storage.get_friend_status(athlete_id, user_id)
-            
-            results.append({
-                "user_id": user_id,
-                "name": user_data.get('name', 'Unknown'),
-                "username": user_data.get('username', 'unknown'),
-                "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
-                "location": user_data.get('location', ''),
-                "friendship_status": status
-            })
+        # Get additional data from storage for avatar, location, etc.
+        user_data = storage.get_user(user_id) or {}
+        
+        results.append({
+            "user_id": user_id,
+            "name": user_data.get('name', 'Unknown'),
+            "username": user.get('username', 'unknown'),
+            "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
+            "location": user_data.get('location', ''),
+            "friendship_status": status
+        })
     
     print(f"   [SUCCESS] Found {len(results)} matching users")
     return jsonify({"users": results, "count": len(results)})
 
 @app.route("/api/friends/request", methods=["POST"])
-def send_friend_request():
+def send_friend_request_endpoint():
     """Send a friend request"""
-    print(f"\n[FRIENDS API] Send friend request endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Send friend request endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -973,25 +1016,20 @@ def send_friend_request():
         print(f"   [ERROR] Missing friend_id")
         return jsonify({"error": "Missing friend_id parameter"}), 400
     
-    # Verify the target user exists
-    target_user = storage.get_user(friend_id)
-    if not target_user:
-        print(f"   [ERROR] Target user not found")
-        return jsonify({"error": "User not found"}), 404
+    # Send request via Supabase
+    result, error = supabase_send_request(athlete_id, friend_id)
     
-    result = friends_storage.send_request(athlete_id, friend_id)
-    
-    if "error" in result:
-        print(f"   [ERROR] {result['error']}")
-        return jsonify(result), 400
+    if error:
+        print(f"   [ERROR] {error}")
+        return jsonify({"error": error}), 400
     
     print(f"   [SUCCESS] Friend request sent")
     return jsonify(result)
 
 @app.route("/api/friends/accept/<friend_id>", methods=["POST"])
-def accept_friend_request(friend_id):
+def accept_friend_request_endpoint(friend_id):
     """Accept a friend request"""
-    print(f"\n[FRIENDS API] Accept friend request endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Accept friend request endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -1001,19 +1039,19 @@ def accept_friend_request(friend_id):
         print(f"   [ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    result = friends_storage.accept_request(athlete_id, friend_id)
+    result, error = supabase_accept_request(athlete_id, friend_id)
     
-    if "error" in result:
-        print(f"   [ERROR] {result['error']}")
-        return jsonify(result), 400
+    if error:
+        print(f"   [ERROR] {error}")
+        return jsonify({"error": error}), 400
     
     print(f"   [SUCCESS] Friend request accepted")
     return jsonify(result)
 
 @app.route("/api/friends/reject/<friend_id>", methods=["POST"])
-def reject_friend_request(friend_id):
+def reject_friend_request_endpoint(friend_id):
     """Reject a friend request"""
-    print(f"\n[FRIENDS API] Reject friend request endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Reject friend request endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -1023,19 +1061,19 @@ def reject_friend_request(friend_id):
         print(f"   [ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    result = friends_storage.reject_request(athlete_id, friend_id)
+    result, error = supabase_reject_request(athlete_id, friend_id)
     
-    if "error" in result:
-        print(f"   [ERROR] {result['error']}")
-        return jsonify(result), 400
+    if error:
+        print(f"   [ERROR] {error}")
+        return jsonify({"error": error}), 400
     
     print(f"   [SUCCESS] Friend request rejected")
     return jsonify(result)
 
 @app.route("/api/friends/remove/<friend_id>", methods=["DELETE"])
-def remove_friend(friend_id):
+def remove_friend_endpoint(friend_id):
     """Remove a friend (unfriend)"""
-    print(f"\n[FRIENDS API] Remove friend endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Remove friend endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -1045,19 +1083,19 @@ def remove_friend(friend_id):
         print(f"   [ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    result = friends_storage.remove_friend(athlete_id, friend_id)
+    result, error = supabase_remove_friend(athlete_id, friend_id)
     
-    if "error" in result:
-        print(f"   [ERROR] {result['error']}")
-        return jsonify(result), 400
+    if error:
+        print(f"   [ERROR] {error}")
+        return jsonify({"error": error}), 400
     
     print(f"   [SUCCESS] Friend removed")
     return jsonify(result)
 
 @app.route("/api/friends", methods=["GET"])
-def get_friends_list():
+def get_friends_list_endpoint():
     """Get current user's friends with their data"""
-    print(f"\n[FRIENDS API] Get friends list endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Get friends list endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -1066,7 +1104,12 @@ def get_friends_list():
         print(f"   [ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    friend_ids = friends_storage.get_friends(athlete_id)
+    # Get friend IDs from Supabase
+    friend_ids, error = supabase_get_friends(athlete_id)
+    if error:
+        print(f"   [ERROR] Failed to get friends: {error}")
+        return jsonify({"error": error}), 500
+    
     all_users = storage.get_all_users()
     
     friends = []
@@ -1096,9 +1139,9 @@ def get_friends_list():
     return jsonify({"friends": friends, "count": len(friends)})
 
 @app.route("/api/friends/requests", methods=["GET"])
-def get_friend_requests():
+def get_friend_requests_endpoint():
     """Get pending friend requests (incoming)"""
-    print(f"\n[FRIENDS API] Get friend requests endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Get friend requests endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -1107,27 +1150,35 @@ def get_friend_requests():
         print(f"   [ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    pending_ids = friends_storage.get_pending_requests(athlete_id)
+    # Get pending requests from Supabase
+    pending_requests, error = supabase_get_pending(athlete_id)
+    if error:
+        print(f"   [ERROR] Failed to get pending requests: {error}")
+        return jsonify({"error": error}), 500
+    
     all_users = storage.get_all_users()
     
     requests = []
-    for user_id in pending_ids:
+    for req in pending_requests:
+        user_id = req.get('from_user_id')
         user_data = all_users.get(user_id, {})
         requests.append({
             "user_id": user_id,
             "name": user_data.get('name', 'Unknown'),
             "username": user_data.get('username', 'unknown'),
             "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
-            "location": user_data.get('location', '')
+            "location": user_data.get('location', ''),
+            "request_id": req.get('id'),
+            "created_at": req.get('created_at')
         })
     
     print(f"   [SUCCESS] Returning {len(requests)} pending requests")
     return jsonify({"requests": requests, "count": len(requests)})
 
 @app.route("/api/friends/sent", methods=["GET"])
-def get_sent_requests():
+def get_sent_requests_endpoint():
     """Get outgoing friend requests (pending)"""
-    print(f"\n[FRIENDS API] Get sent requests endpoint called")
+    print(f"\n[FRIENDS API - SUPABASE] Get sent requests endpoint called")
     
     try:
         _, athlete_id = get_valid_token()
@@ -1136,18 +1187,26 @@ def get_sent_requests():
         print(f"   [ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    sent_ids = friends_storage.get_sent_requests(athlete_id)
+    # Get sent requests from Supabase
+    sent_requests, error = supabase_get_sent(athlete_id)
+    if error:
+        print(f"   [ERROR] Failed to get sent requests: {error}")
+        return jsonify({"error": error}), 500
+    
     all_users = storage.get_all_users()
     
     sent = []
-    for user_id in sent_ids:
+    for req in sent_requests:
+        user_id = req.get('to_user_id')
         user_data = all_users.get(user_id, {})
         sent.append({
             "user_id": user_id,
             "name": user_data.get('name', 'Unknown'),
             "username": user_data.get('username', 'unknown'),
             "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
-            "location": user_data.get('location', '')
+            "location": user_data.get('location', ''),
+            "request_id": req.get('id'),
+            "created_at": req.get('created_at')
         })
     
     print(f"   [SUCCESS] Returning {len(sent)} sent requests")

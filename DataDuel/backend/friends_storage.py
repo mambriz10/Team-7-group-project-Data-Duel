@@ -1,6 +1,17 @@
 """
-Friends Storage Module - Manages friend relationships
-Handles friend requests, accepts/rejects, and friend lists
+DEPRECATED: Friends Storage Module - JSON-based (Legacy)
+
+This module is DEPRECATED and replaced by Supabase implementation in:
+DataDuel/backend/supabase_stravaDB/strava_user.py
+
+The Supabase version provides:
+- Database persistence across deployments
+- Row Level Security
+- Better scalability
+- Complete friend request system
+
+This file is kept for reference only.
+DO NOT USE in new code - use Supabase functions instead.
 """
 import json
 import os
