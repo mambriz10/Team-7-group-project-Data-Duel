@@ -21,6 +21,8 @@ from supabase_stravaDB.strava_user import (
     # User & credentials
     add_member_to_leaderboard, insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, 
     insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET,
+    # Token storage (Supabase)
+    save_strava_tokens, get_strava_tokens, refresh_strava_token,
     # Friends system (Supabase)
     send_friend_request as supabase_send_request,
     accept_friend_request as supabase_accept_request,
@@ -188,16 +190,40 @@ def auth_callback():
     print(f"   Athlete city: {athlete.get('city')}")
     print(f"   Athlete state: {athlete.get('state')}")
 
-    # Store tokens securely
-    print(f"\n[STORAGE] Saving tokens to tokens.json...")
-    with open("tokens.json", "w") as f:
-        json.dump({
-            "access_token": data["access_token"],
-            "refresh_token": data["refresh_token"],
-            "expires_at": data["expires_at"],
-            "athlete_id": athlete_id
-        }, f)
-    print(f"[SUCCESS] Tokens saved successfully")
+    # Store tokens securely in Supabase (for production) and file (for local dev fallback)
+    print(f"\n[STORAGE] Saving tokens to Supabase...")
+    token_result, token_error = save_strava_tokens(
+        athlete_id,
+        data["access_token"],
+        data["refresh_token"],
+        data["expires_at"]
+    )
+    
+    if token_error:
+        print(f"[WARNING] Failed to save tokens to Supabase: {token_error}")
+        print(f"[FALLBACK] Saving tokens to tokens.json for local development...")
+        # Fallback to file storage for local dev
+        with open("tokens.json", "w") as f:
+            json.dump({
+                "access_token": data["access_token"],
+                "refresh_token": data["refresh_token"],
+                "expires_at": data["expires_at"],
+                "athlete_id": athlete_id
+            }, f)
+        print(f"[SUCCESS] Tokens saved to file (local dev fallback)")
+    else:
+        print(f"[SUCCESS] Tokens saved to Supabase successfully")
+        # Also save to file for local dev compatibility
+        try:
+            with open("tokens.json", "w") as f:
+                json.dump({
+                    "access_token": data["access_token"],
+                    "refresh_token": data["refresh_token"],
+                    "expires_at": data["expires_at"],
+                    "athlete_id": athlete_id
+                }, f)
+        except:
+            pass  # File write not critical if Supabase worked
     
     # Create or update user in storage
     print(f"\n[PERSON] Creating Person object from athlete data...")
@@ -273,8 +299,48 @@ def auth_callback():
     return redirect(f"{frontend_url}/index.html")
 
 def get_valid_token():
-    """Load and refresh the access token if expired."""
+    """
+    Load and refresh the access token if expired.
+    Uses Supabase in production, falls back to file storage for local dev.
+    
+    Strategy:
+    1. Try Supabase first (if USE_SUPABASE_STORAGE=true and athlete_id available)
+    2. Fall back to file storage (local dev or if Supabase fails)
+    """
+    # Check if we should use Supabase (default: true for production)
+    use_supabase = os.getenv("USE_SUPABASE_STORAGE", "true").lower() == "true"
+    
+    # Get athlete_id from file (if exists) to look up in Supabase
     FILE_NAME = "tokens.json"
+    athlete_id = None
+    
+    if os.path.exists(FILE_NAME):
+        try:
+            with open(FILE_NAME, "r") as f:
+                file_tokens = json.load(f)
+                athlete_id = file_tokens.get("athlete_id")
+        except:
+            pass
+    
+    # Try Supabase first (production)
+    if use_supabase and athlete_id:
+        tokens, error = get_strava_tokens(athlete_id)
+        if not error and tokens and tokens.get("access_token"):
+            # Check if expired
+            if time.time() > tokens.get("expires_at", 0):
+                print("[TOKEN] Access token expired — refreshing from Supabase...")
+                refreshed, refresh_error = refresh_strava_token(athlete_id, CLIENT_ID, CLIENT_SECRET)
+                if not refresh_error:
+                    tokens = refreshed
+                    print("[TOKEN] Token refreshed and saved to Supabase")
+                else:
+                    print(f"[TOKEN] Supabase refresh failed: {refresh_error}, falling back to file")
+                    use_supabase = False
+            else:
+                print("[TOKEN] Using valid token from Supabase")
+                return tokens["access_token"], tokens.get("athlete_id")
+    
+    # Fallback to file storage (local development or if Supabase unavailable)
     if not os.path.exists(FILE_NAME):
         raise FileNotFoundError("tokens.json not found. Please authenticate first.")
     
@@ -283,7 +349,7 @@ def get_valid_token():
 
     # Check if expired
     if time.time() > tokens.get("expires_at", 0):
-        print("Access token expired — refreshing...")
+        print("[TOKEN] Access token expired — refreshing from file storage...")
 
         refresh_payload = {
             "client_id": CLIENT_ID,
@@ -304,8 +370,19 @@ def get_valid_token():
 
         with open(FILE_NAME, "w") as f:
             json.dump(tokens, f)
+        
+        # Also save to Supabase if enabled and we have athlete_id
+        if use_supabase and tokens.get("athlete_id"):
+            save_result, save_error = save_strava_tokens(
+                tokens["athlete_id"],
+                tokens["access_token"],
+                tokens["refresh_token"],
+                tokens["expires_at"]
+            )
+            if not save_error:
+                print("[TOKEN] Token also saved to Supabase")
 
-        print("New access token saved.")
+        print("[TOKEN] New access token saved.")
 
     return tokens["access_token"], tokens.get("athlete_id")
 

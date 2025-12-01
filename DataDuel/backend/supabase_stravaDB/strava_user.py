@@ -187,6 +187,163 @@ def insert_user_profile( user_id, username, email):
         return str(e)
 
 # =============================================================================
+# STRAVA TOKEN STORAGE - SUPABASE (FOR PRODUCTION/RENDER)
+# =============================================================================
+
+def save_strava_tokens(athlete_id: str, access_token: str, refresh_token: str, expires_at: int):
+    """
+    Save Strava OAuth tokens to Supabase user_strava table.
+    Uses athlete_id to find the user record.
+    
+    Args:
+        athlete_id: Strava athlete ID (string)
+        access_token: Strava access token
+        refresh_token: Strava refresh token
+        expires_at: Unix timestamp when token expires
+    
+    Returns:
+        (success_data, error_message)
+    """
+    try:
+        print(f"[TOKEN STORAGE] Saving tokens for athlete_id: {athlete_id}")
+        
+        # Find user by strava_athlete_id or create/update record
+        # Note: This assumes athlete_id maps to a user in user_strava
+        # If not, we need to link athlete_id to user_id during OAuth
+        
+        response = db.table("user_strava").update({
+            "strava_access_token": access_token,
+            "strava_refresh_token": refresh_token,
+            "strava_expires_at": expires_at,
+            "strava_athlete_id": str(athlete_id)
+        }).eq("strava_athlete_id", str(athlete_id)).execute()
+        
+        # If no rows updated, try to insert (user might not exist yet)
+        if not response.data:
+            print(f"[TOKEN STORAGE] No existing record, will be created during user save")
+            # Return success - tokens will be saved when user record is created
+            return {"success": True, "message": "Tokens will be saved with user record"}, None
+        
+        print(f"[TOKEN STORAGE] Success: Tokens saved to Supabase")
+        return {"success": True, "message": "Tokens saved"}, None
+        
+    except Exception as e:
+        print(f"[TOKEN STORAGE] Error saving tokens: {str(e)}")
+        return None, str(e)
+
+
+def get_strava_tokens(athlete_id: str):
+    """
+    Retrieve Strava OAuth tokens from Supabase.
+    
+    Args:
+        athlete_id: Strava athlete ID (string)
+    
+    Returns:
+        (tokens_dict, error_message) where tokens_dict contains:
+        - access_token
+        - refresh_token
+        - expires_at
+        - athlete_id
+    """
+    try:
+        print(f"[TOKEN STORAGE] Retrieving tokens for athlete_id: {athlete_id}")
+        
+        result = db.table("user_strava").select(
+            "strava_access_token, strava_refresh_token, strava_expires_at, strava_athlete_id"
+        ).eq("strava_athlete_id", str(athlete_id)).maybe_single().execute()
+        
+        if not result.data:
+            print(f"[TOKEN STORAGE] No tokens found for athlete_id: {athlete_id}")
+            return None, "No tokens found. Please authenticate first."
+        
+        data = result.data
+        tokens = {
+            "access_token": data.get("strava_access_token"),
+            "refresh_token": data.get("strava_refresh_token"),
+            "expires_at": data.get("strava_expires_at"),
+            "athlete_id": data.get("strava_athlete_id")
+        }
+        
+        if not tokens["access_token"]:
+            print(f"[TOKEN STORAGE] Access token is null")
+            return None, "Access token not found. Please authenticate first."
+        
+        print(f"[TOKEN STORAGE] Success: Tokens retrieved")
+        return tokens, None
+        
+    except Exception as e:
+        print(f"[TOKEN STORAGE] Error retrieving tokens: {str(e)}")
+        return None, str(e)
+
+
+def refresh_strava_token(athlete_id: str, client_id: str, client_secret: str):
+    """
+    Refresh an expired Strava access token.
+    
+    Args:
+        athlete_id: Strava athlete ID
+        client_id: Strava app client ID
+        client_secret: Strava app client secret
+    
+    Returns:
+        (updated_tokens_dict, error_message)
+    """
+    import requests
+    
+    try:
+        print(f"[TOKEN STORAGE] Refreshing token for athlete_id: {athlete_id}")
+        
+        # Get current tokens
+        tokens, error = get_strava_tokens(athlete_id)
+        if error:
+            return None, error
+        
+        refresh_token = tokens["refresh_token"]
+        if not refresh_token:
+            return None, "No refresh token available"
+        
+        # Request new token from Strava
+        refresh_payload = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+        }
+        
+        response = requests.post("https://www.strava.com/oauth/token", data=refresh_payload)
+        new_data = response.json()
+        
+        if "access_token" not in new_data:
+            print(f"[TOKEN STORAGE] Failed to refresh token: {new_data}")
+            return None, f"Failed to refresh token: {new_data.get('message', 'Unknown error')}"
+        
+        # Save new tokens
+        updated_tokens = {
+            "access_token": new_data["access_token"],
+            "refresh_token": new_data.get("refresh_token", refresh_token),  # Keep old if not provided
+            "expires_at": new_data["expires_at"],
+            "athlete_id": athlete_id
+        }
+        
+        save_result, save_error = save_strava_tokens(
+            athlete_id,
+            updated_tokens["access_token"],
+            updated_tokens["refresh_token"],
+            updated_tokens["expires_at"]
+        )
+        
+        if save_error:
+            return None, f"Failed to save refreshed tokens: {save_error}"
+        
+        print(f"[TOKEN STORAGE] Success: Token refreshed and saved")
+        return updated_tokens, None
+        
+    except Exception as e:
+        print(f"[TOKEN STORAGE] Error refreshing token: {str(e)}")
+        return None, str(e)
+
+# =============================================================================
 # FRIENDS SYSTEM - COMPLETE SUPABASE IMPLEMENTATION
 # =============================================================================
 
