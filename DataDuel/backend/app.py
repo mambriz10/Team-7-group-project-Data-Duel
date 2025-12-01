@@ -39,17 +39,25 @@ from supabase_stravaDB.strava_user import (
 load_dotenv()
 
 app = Flask(__name__)
-#"http://127.0.0.1:5500"
-CORS(app, origins="http://localhost:5500")  # Enable CORS for frontend communication
+
+# CORS: Allow requests from multiple origins (local + deployed)
+CORS(app, origins=[
+    "http://localhost:5500",                                    # Local development
+    "http://127.0.0.1:5500",                                     # Local development (alternative)
+    "https://team-7-group-project-data-duel.pages.dev",         # Cloudflare Pages (production)
+    os.getenv("FRONTEND_URL", ""),                               # Custom frontend URL (if set)
+])
 
 # Initialize data storage
 storage = DataStorage()
 # friends_storage = FriendsStorage()  # DEPRECATED: Now using Supabase for friends
 
 CREDENTIALS_FILE = "credentials.json"
-# CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
-# CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
-REDIRECT_URI = "http://127.0.0.1:5000/auth/strava/callback" #os.getenv("REDIRECT_URI") #WHAT IS THIS ? fix this.
+
+# Strava OAuth Configuration
+# In production (Render), these come from environment variables
+# In development, they come from .env file or credentials.json
+REDIRECT_URI = os.getenv("REDIRECT_URI", "http://127.0.0.1:5000/auth/strava/callback")
 
 # ============================================================================
 # AUTHENTICATION ENDPOINTS

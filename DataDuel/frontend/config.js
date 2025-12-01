@@ -10,7 +10,7 @@ const config = {
     environment: 'development'
   },
   production: {
-    // TODO: Update this after deploying backend to Render/Railway
+    // Render backend URL (update with your actual Render URL after deployment)
     apiUrl: 'https://dataduel-backend.onrender.com',
     environment: 'production'
   }
