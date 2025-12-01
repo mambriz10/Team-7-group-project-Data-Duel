@@ -268,8 +268,9 @@ def auth_callback():
     
     print(f"\n[REDIRECT] Redirecting to frontend...")
     print("="*80 + "\n")
-    #                http://localhost:5500/index.html
-    return redirect("http://localhost:5500/index.html")
+    # Redirect to frontend - use environment variable or default to localhost for dev
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5500")
+    return redirect(f"{frontend_url}/index.html")
 
 def get_valid_token():
     """Load and refresh the access token if expired."""
