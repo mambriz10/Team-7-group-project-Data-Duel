@@ -1,12 +1,17 @@
 # strava_credentials.py
 
 import json
+import os
 from supabase import create_client
 
 CREDENTIALS_FILE = "strava_credentials.json"
-# db_URL = "https://gbvyveaifvqneyayloks.db.co"
-db_URL = "https://gbvyveaifvqneyayloks.supabase.co"
-db_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdidnl2ZWFpZnZxbmV5YXlsb2tzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTU4NTU4OCwiZXhwIjoyMDc3MTYxNTg4fQ.aGxQOGIY7VKV0GjLPOkORAlfoz5M2JGeY-8b5YQxTvo"
+
+# Supabase Configuration
+# Use environment variables in production (Render), fallback to hardcoded for local dev
+db_URL = os.getenv("SUPABASE_URL", "https://gbvyveaifvqneyayloks.supabase.co")
+db_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdidnl2ZWFpZnZxbmV5YXlsb2tzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTU4NTU4OCwiZXhwIjoyMDc3MTYxNTg4fQ.aGxQOGIY7VKV0GjLPOkORAlfoz5M2JGeY-8b5YQxTvo")
+
+print(f"[SUPABASE] Connecting to: {db_URL}")
 db = create_client(db_URL, db_KEY)
 
 CLIENT_ID = None
