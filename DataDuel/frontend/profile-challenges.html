@@ -8,12 +8,42 @@
   <title>Challenges & Badges – DataDuels</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .wrap { width: min(720px, 92%); margin: 0 auto; text-align:left; }
-    .section { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; }
-    .section + .section { margin-top:12px; }
-    .item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #e5e7eb; }
-    .item:last-child { border-bottom:none; }
-    .badge { display:inline-block; padding:4px 8px; border-radius:999px; border:1px solid #e5e7eb; font-size:12px; }
+  .wrap {
+    width: min(720px, 92%);
+    margin: 0 auto;
+    text-align: left;
+  }
+
+  /* use theme colors instead of hard-coded #fff / #e5e7eb */
+  .section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .section + .section { margin-top: 12px; }
+
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .item:last-child { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    background: transparent;
+    color: var(--ink);
+  }
   </style>
 </head>
 <body>
