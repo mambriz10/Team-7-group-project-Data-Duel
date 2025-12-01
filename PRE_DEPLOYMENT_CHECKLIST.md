@@ -55,19 +55,12 @@ Copy these **exactly** from `CREDENTIALS_SUMMARY.md`:
 - [ ] **NO https://**, just the domain name!
 - [ ] Click "Update"
 
-### Step 3: Update Cloudflare Pages URL in CORS
+### Step 3: Verify Cloudflare Pages URL in CORS
 
-**If your actual Cloudflare Pages URL is different from `dataduel.pages.dev`:**
+✅ **DONE!** CORS already updated to include:
+- `https://team-7-group-project-data-duel.pages.dev`
 
-1. Find your actual Cloudflare URL (e.g., `dataduel-abc123.pages.dev`)
-2. Update `DataDuel/backend/app.py` line 47:
-   ```python
-   "https://your-actual-url.pages.dev",  # Replace with real URL
-   ```
-3. OR: Add environment variable in Render:
-   - `FRONTEND_URL` = `https://your-actual-url.pages.dev`
-
-**This allows Render to accept requests from your Cloudflare frontend!**
+No changes needed - backend will accept requests from your Cloudflare frontend!
 
 ### Step 4: Verify Everything Works
 

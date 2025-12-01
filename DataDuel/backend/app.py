@@ -42,10 +42,10 @@ app = Flask(__name__)
 
 # CORS: Allow requests from multiple origins (local + deployed)
 CORS(app, origins=[
-    "http://localhost:5500",           # Local development
-    "http://127.0.0.1:5500",            # Local development (alternative)
-    "https://dataduel.pages.dev",       # Cloudflare Pages (production)
-    os.getenv("FRONTEND_URL", ""),      # Custom frontend URL (if set)
+    "http://localhost:5500",                                    # Local development
+    "http://127.0.0.1:5500",                                     # Local development (alternative)
+    "https://team-7-group-project-data-duel.pages.dev",         # Cloudflare Pages (production)
+    os.getenv("FRONTEND_URL", ""),                               # Custom frontend URL (if set)
 ])
 
 # Initialize data storage
