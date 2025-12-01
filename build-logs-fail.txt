@@ -1,0 +1,164 @@
+2025-11-25T04:31:20.242Z	Initializing build environment...
+2025-11-25T04:31:22.648Z	Success: Finished initializing build environment
+2025-11-25T04:31:23.294Z	Cloning repository...
+2025-11-25T04:31:24.575Z	No build output detected to cache. Skipping.
+2025-11-25T04:31:24.575Z	No dependencies detected to cache. Skipping.
+2025-11-25T04:31:24.577Z	Detected the following tools from environment: 
+2025-11-25T04:31:24.866Z	Installing project dependencies: pip install -r requirements.txt
+2025-11-25T04:31:26.521Z	Collecting Flask==3.0.0 (from -r requirements.txt (line 1))
+2025-11-25T04:31:27.100Z	  Downloading flask-3.0.0-py3-none-any.whl.metadata (3.6 kB)
+2025-11-25T04:31:27.325Z	Collecting flask-cors==4.0.0 (from -r requirements.txt (line 2))
+2025-11-25T04:31:27.460Z	  Downloading Flask_Cors-4.0.0-py2.py3-none-any.whl.metadata (5.4 kB)
+2025-11-25T04:31:27.716Z	Collecting requests==2.31.0 (from -r requirements.txt (line 3))
+2025-11-25T04:31:27.851Z	  Downloading requests-2.31.0-py3-none-any.whl.metadata (4.6 kB)
+2025-11-25T04:31:20.242Z	Initializing build environment...
+2025-11-25T04:31:22.648Z	Success: Finished initializing build environment
+2025-11-25T04:31:23.294Z	Cloning repository...
+2025-11-25T04:31:24.575Z	No build output detected to cache. Skipping.
+2025-11-25T04:31:24.575Z	No dependencies detected to cache. Skipping.
+2025-11-25T04:31:24.577Z	Detected the following tools from environment: 
+2025-11-25T04:31:24.866Z	Installing project dependencies: pip install -r requirements.txt
+2025-11-25T04:31:26.521Z	Collecting Flask==3.0.0 (from -r requirements.txt (line 1))
+2025-11-25T04:31:27.100Z	  Downloading flask-3.0.0-py3-none-any.whl.metadata (3.6 kB)
+2025-11-25T04:31:27.325Z	Collecting flask-cors==4.0.0 (from -r requirements.txt (line 2))
+2025-11-25T04:31:27.460Z	  Downloading Flask_Cors-4.0.0-py2.py3-none-any.whl.metadata (5.4 kB)
+2025-11-25T04:31:27.716Z	Collecting requests==2.31.0 (from -r requirements.txt (line 3))
+2025-11-25T04:31:27.851Z	  Downloading requests-2.31.0-py3-none-any.whl.metadata (4.6 kB)
+2025-11-25T04:31:28.013Z	Collecting python-dotenv==1.0.0 (from -r requirements.txt (line 4))
+2025-11-25T04:31:28.160Z	  Downloading python_dotenv-1.0.0-py3-none-any.whl.metadata (21 kB)
+2025-11-25T04:31:28.556Z	Collecting supabase==2.0.0 (from -r requirements.txt (line 5))
+2025-11-25T04:31:28.677Z	  Downloading supabase-2.0.0-py3-none-any.whl.metadata (11 kB)
+2025-11-25T04:31:28.903Z	Collecting Werkzeug>=3.0.0 (from Flask==3.0.0->-r requirements.txt (line 1))
+2025-11-25T04:31:29.051Z	  Downloading werkzeug-3.1.3-py3-none-any.whl.metadata (3.7 kB)
+2025-11-25T04:31:29.220Z	Collecting Jinja2>=3.1.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+2025-11-25T04:31:29.331Z	  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+2025-11-25T04:31:29.507Z	Collecting itsdangerous>=2.1.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+2025-11-25T04:31:29.606Z	  Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+2025-11-25T04:31:29.613Z	Requirement already satisfied: click>=8.1.3 in /opt/buildhome/.local/lib/python3.13/site-packages (from Flask==3.0.0->-r requirements.txt (line 1)) (8.3.1)
+2025-11-25T04:31:29.754Z	Collecting blinker>=1.6.2 (from Flask==3.0.0->-r requirements.txt (line 1))
+2025-11-25T04:31:29.875Z	  Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+2025-11-25T04:31:30.139Z	Collecting charset-normalizer<4,>=2 (from requests==2.31.0->-r requirements.txt (line 3))
+2025-11-25T04:31:30.142Z	  Using cached charset_normalizer-3.4.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+2025-11-25T04:31:30.289Z	Collecting idna<4,>=2.5 (from requests==2.31.0->-r requirements.txt (line 3))
+2025-11-25T04:31:30.382Z	  Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2025-11-25T04:31:30.523Z	Collecting urllib3<3,>=1.21.1 (from requests==2.31.0->-r requirements.txt (line 3))
+2025-11-25T04:31:30.526Z	  Using cached urllib3-2.5.0-py3-none-any.whl.metadata (6.5 kB)
+2025-11-25T04:31:30.654Z	Collecting certifi>=2017.4.17 (from requests==2.31.0->-r requirements.txt (line 3))
+2025-11-25T04:31:30.656Z	  Using cached certifi-2025.11.12-py3-none-any.whl.metadata (2.5 kB)
+2025-11-25T04:31:30.820Z	Collecting gotrue<2.0.0,>=1.0.4 (from supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:30.956Z	  Downloading gotrue-1.3.1-py3-none-any.whl.metadata (5.9 kB)
+2025-11-25T04:31:31.131Z	Collecting httpx<0.25.0,>=0.24.0 (from supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:31.254Z	  Downloading httpx-0.24.1-py3-none-any.whl.metadata (7.4 kB)
+2025-11-25T04:31:31.461Z	Collecting postgrest<0.14.0,>=0.10.8 (from supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:31.589Z	  Downloading postgrest-0.13.2-py3-none-any.whl.metadata (5.1 kB)
+2025-11-25T04:31:31.777Z	Collecting realtime<2.0.0,>=1.0.0 (from supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:31.917Z	  Downloading realtime-1.0.6-py3-none-any.whl.metadata (2.6 kB)
+2025-11-25T04:31:32.088Z	Collecting storage3<0.7.0,>=0.5.3 (from supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:32.212Z	  Downloading storage3-0.6.1-py3-none-any.whl.metadata (1.8 kB)
+2025-11-25T04:31:32.379Z	Collecting supafunc<0.4.0,>=0.3.0 (from supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:32.521Z	  Downloading supafunc-0.3.3-py3-none-any.whl.metadata (1.2 kB)
+2025-11-25T04:31:33.141Z	Collecting pydantic<3,>=1.10 (from gotrue<2.0.0,>=1.0.4->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:33.283Z	  Downloading pydantic-2.12.4-py3-none-any.whl.metadata (89 kB)
+2025-11-25T04:31:33.804Z	Collecting httpcore<0.18.0,>=0.15.0 (from httpx<0.25.0,>=0.24.0->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:34.092Z	  Downloading httpcore-0.17.3-py3-none-any.whl.metadata (18 kB)
+2025-11-25T04:31:34.284Z	Collecting sniffio (from httpx<0.25.0,>=0.24.0->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:34.287Z	  Using cached sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+2025-11-25T04:31:34.427Z	Collecting h11<0.15,>=0.13 (from httpcore<0.18.0,>=0.15.0->httpx<0.25.0,>=0.24.0->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:34.556Z	  Downloading h11-0.14.0-py3-none-any.whl.metadata (8.2 kB)
+2025-11-25T04:31:34.726Z	Collecting anyio<5.0,>=3.0 (from httpcore<0.18.0,>=0.15.0->httpx<0.25.0,>=0.24.0->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:34.729Z	  Using cached anyio-4.11.0-py3-none-any.whl.metadata (4.1 kB)
+2025-11-25T04:31:34.857Z	Collecting deprecation<3.0.0,>=2.1.0 (from postgrest<0.14.0,>=0.10.8->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:34.986Z	  Downloading deprecation-2.1.0-py2.py3-none-any.whl.metadata (4.6 kB)
+2025-11-25T04:31:35.133Z	Collecting strenum<0.5.0,>=0.4.9 (from postgrest<0.14.0,>=0.10.8->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:35.271Z	  Downloading StrEnum-0.4.15-py3-none-any.whl.metadata (5.3 kB)
+2025-11-25T04:31:35.291Z	Requirement already satisfied: packaging in /opt/buildhome/.local/lib/python3.13/site-packages (from deprecation<3.0.0,>=2.1.0->postgrest<0.14.0,>=0.10.8->supabase==2.0.0->-r requirements.txt (line 5)) (25.0)
+2025-11-25T04:31:35.435Z	Collecting annotated-types>=0.6.0 (from pydantic<3,>=1.10->gotrue<2.0.0,>=1.0.4->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:35.567Z	  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+2025-11-25T04:31:38.265Z	Collecting pydantic-core==2.41.5 (from pydantic<3,>=1.10->gotrue<2.0.0,>=1.0.4->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:38.380Z	  Downloading pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+2025-11-25T04:31:38.621Z	Collecting typing-extensions>=4.14.1 (from pydantic<3,>=1.10->gotrue<2.0.0,>=1.0.4->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:38.769Z	  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+2025-11-25T04:31:38.910Z	Collecting typing-inspection>=0.4.2 (from pydantic<3,>=1.10->gotrue<2.0.0,>=1.0.4->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:39.024Z	  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+2025-11-25T04:31:39.186Z	Collecting python-dateutil<3.0.0,>=2.8.1 (from realtime<2.0.0,>=1.0.0->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:39.309Z	  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+2025-11-25T04:31:39.671Z	Collecting websockets<13,>=11 (from realtime<2.0.0,>=1.0.0->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:39.799Z	  Downloading websockets-12.0-py3-none-any.whl.metadata (6.6 kB)
+2025-11-25T04:31:39.951Z	Collecting six>=1.5 (from python-dateutil<3.0.0,>=2.8.1->realtime<2.0.0,>=1.0.0->supabase==2.0.0->-r requirements.txt (line 5))
+2025-11-25T04:31:40.082Z	  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+2025-11-25T04:31:40.467Z	Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->Flask==3.0.0->-r requirements.txt (line 1))
+2025-11-25T04:31:40.595Z	  Downloading markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+2025-11-25T04:31:40.719Z	Downloading flask-3.0.0-py3-none-any.whl (99 kB)
+2025-11-25T04:31:41.156Z	Downloading Flask_Cors-4.0.0-py2.py3-none-any.whl (14 kB)
+2025-11-25T04:31:41.324Z	Downloading requests-2.31.0-py3-none-any.whl (62 kB)
+2025-11-25T04:31:41.644Z	Downloading python_dotenv-1.0.0-py3-none-any.whl (19 kB)
+2025-11-25T04:31:41.825Z	Downloading supabase-2.0.0-py3-none-any.whl (11 kB)
+2025-11-25T04:31:41.861Z	Using cached charset_normalizer-3.4.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (153 kB)
+2025-11-25T04:31:42.002Z	Downloading gotrue-1.3.1-py3-none-any.whl (42 kB)
+2025-11-25T04:31:42.240Z	Downloading httpx-0.24.1-py3-none-any.whl (75 kB)
+2025-11-25T04:31:42.646Z	Downloading httpcore-0.17.3-py3-none-any.whl (74 kB)
+2025-11-25T04:31:43.058Z	Using cached anyio-4.11.0-py3-none-any.whl (109 kB)
+2025-11-25T04:31:43.183Z	Downloading h11-0.14.0-py3-none-any.whl (58 kB)
+2025-11-25T04:31:43.528Z	Using cached idna-3.11-py3-none-any.whl (71 kB)
+2025-11-25T04:31:43.656Z	Downloading postgrest-0.13.2-py3-none-any.whl (19 kB)
+2025-11-25T04:31:43.867Z	Downloading deprecation-2.1.0-py2.py3-none-any.whl (11 kB)
+2025-11-25T04:31:44.041Z	Downloading pydantic-2.12.4-py3-none-any.whl (463 kB)
+2025-11-25T04:31:47.099Z	Downloading pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+2025-11-25T04:31:58.066Z	   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 194.8 kB/s  0:00:10
+2025-11-25T04:31:58.183Z	Downloading realtime-1.0.6-py3-none-any.whl (9.0 kB)
+2025-11-25T04:31:58.325Z	Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+2025-11-25T04:31:59.153Z	Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+2025-11-25T04:31:59.262Z	Downloading storage3-0.6.1-py3-none-any.whl (15 kB)
+2025-11-25T04:31:59.438Z	Downloading StrEnum-0.4.15-py3-none-any.whl (8.9 kB)
+2025-11-25T04:31:59.606Z	Downloading supafunc-0.3.3-py3-none-any.whl (6.1 kB)
+2025-11-25T04:31:59.747Z	Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+2025-11-25T04:31:59.941Z	Using cached urllib3-2.5.0-py3-none-any.whl (129 kB)
+2025-11-25T04:32:00.066Z	Downloading websockets-12.0-py3-none-any.whl (118 kB)
+2025-11-25T04:32:00.738Z	Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+2025-11-25T04:32:00.941Z	Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+2025-11-25T04:32:00.983Z	Using cached certifi-2025.11.12-py3-none-any.whl (159 kB)
+2025-11-25T04:32:01.110Z	Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+2025-11-25T04:32:01.304Z	Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+2025-11-25T04:32:02.146Z	Downloading markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+2025-11-25T04:32:02.377Z	Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+2025-11-25T04:32:02.698Z	Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+2025-11-25T04:32:02.897Z	Downloading werkzeug-3.1.3-py3-none-any.whl (224 kB)
+2025-11-25T04:32:04.670Z	Installing collected packages: strenum, websockets, urllib3, typing-extensions, sniffio, six, python-dotenv, MarkupSafe, itsdangerous, idna, h11, deprecation, charset-normalizer, certifi, blinker, annotated-types, Werkzeug, typing-inspection, requests, python-dateutil, pydantic-core, Jinja2, anyio, realtime, pydantic, httpcore, Flask, httpx, flask-cors, supafunc, storage3, postgrest, gotrue, supabase
+2025-11-25T04:32:06.365Z	
+2025-11-25T04:32:06.368Z	Successfully installed Flask-3.0.0 Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.3 annotated-types-0.7.0 anyio-4.11.0 blinker-1.9.0 certifi-2025.11.12 charset-normalizer-3.4.4 deprecation-2.1.0 flask-cors-4.0.0 gotrue-1.3.1 h11-0.14.0 httpcore-0.17.3 httpx-0.24.1 idna-3.11 itsdangerous-2.2.0 postgrest-0.13.2 pydantic-2.12.4 pydantic-core-2.41.5 python-dateutil-2.9.0.post0 python-dotenv-1.0.0 realtime-1.0.6 requests-2.31.0 six-1.17.0 sniffio-1.3.1 storage3-0.6.1 strenum-0.4.15 supabase-2.0.0 supafunc-0.3.3 typing-extensions-4.15.0 typing-inspection-0.4.2 urllib3-2.5.0 websockets-12.0
+2025-11-25T04:32:06.604Z	Reshimming asdf python...
+2025-11-25T04:32:07.545Z	Executing user deploy command: npx wrangler deploy
+2025-11-25T04:32:09.152Z	npm warn exec The following package was not found and will be installed: wrangler@4.50.0
+2025-11-25T04:32:22.062Z	
+2025-11-25T04:32:22.062Z	 ⛅️ wrangler 4.50.0
+2025-11-25T04:32:22.063Z	───────────────────
+2025-11-25T04:32:22.076Z	
+2025-11-25T04:32:22.136Z	✘ [ERROR] Missing entry-point to Worker script or to assets directory
+2025-11-25T04:32:22.136Z	
+2025-11-25T04:32:22.136Z	  
+2025-11-25T04:32:22.136Z	  If there is code to deploy, you can either:
+2025-11-25T04:32:22.136Z	  - Specify an entry-point to your Worker script via the command line (ex: `npx wrangler deploy src/index.ts`)
+2025-11-25T04:32:22.136Z	  - Or add the following to your "wrangler.toml" file:
+2025-11-25T04:32:22.136Z	  
+2025-11-25T04:32:22.136Z	  ```
+2025-11-25T04:32:22.137Z	  main = "src/index.ts"
+2025-11-25T04:32:22.137Z	  
+2025-11-25T04:32:22.137Z	  ```
+2025-11-25T04:32:22.137Z	  
+2025-11-25T04:32:22.137Z	  
+2025-11-25T04:32:22.137Z	  If are uploading a directory of assets, you can either:
+2025-11-25T04:32:22.137Z	  - Specify the path to the directory of assets via the command line: (ex: `npx wrangler deploy --assets=./dist`)
+2025-11-25T04:32:22.137Z	  - Or add the following to your "wrangler.toml" file:
+2025-11-25T04:32:22.137Z	  
+2025-11-25T04:32:22.137Z	  ```
+2025-11-25T04:32:22.137Z	  [assets]
+2025-11-25T04:32:22.137Z	  directory = "./dist"
+2025-11-25T04:32:22.138Z	  
+2025-11-25T04:32:22.138Z	  ```
+2025-11-25T04:32:22.138Z	  
+2025-11-25T04:32:22.138Z	
+2025-11-25T04:32:22.138Z	
+2025-11-25T04:32:22.153Z	
+2025-11-25T04:32:22.153Z	Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+2025-11-25T04:32:22.167Z	🪵  Logs were written to "/opt/buildhome/.config/.wrangler/logs/wrangler-2025-11-25_04-32-21_367.log"
+2025-11-25T04:32:22.325Z	Failed: error occurred while running deploy command
