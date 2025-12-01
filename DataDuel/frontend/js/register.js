@@ -26,7 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const userId = authData.user.id;
             //const accessToken = data.session.accessToken;
-            const response = await fetch("http://127.0.0.1:5000/register", {
+            // Import API_URL dynamically
+            const { API_URL } = await import('../config.js');
+            const response = await fetch(`${API_URL}/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -49,13 +51,13 @@ document.addEventListener("DOMContentLoaded", () => {
             
             
             // Redirect to login page
-            window.location.href = "http://localhost:5500/index.html";
+            window.location.href = "/index.html";
         } catch (err) {
             console.error("Unexpected error:", err);
             alert("An unexpected error occurred. Please try again.");
         }
 
         alert("Registration successful!");
-        window.location.href = "http://localhost:5500/index.html"; // redirect to login
+        window.location.href = "/index.html"; // redirect to login
     });
 });

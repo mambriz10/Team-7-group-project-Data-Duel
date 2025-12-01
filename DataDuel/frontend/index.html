@@ -45,6 +45,7 @@
   <script type="module" src="api.js"></script>
   <script src="script.js"></script>
   <script type="module">
+    import { API_URL } from './config.js';
 
     async function checkStatus() {
       try {
@@ -60,14 +61,14 @@
         } else {
           statusContent.innerHTML = `
             <p style="margin:0; color:#f59e0b;">[Warning] Not connected to Strava</p>
-            <a class="btn primary" href="http://localhost:5500/strava.html" style="margin-top:8px;">Connect Strava</a>
+            <a class="btn primary" href="${API_URL}/auth/strava" style="margin-top:8px;">Connect Strava</a>
           `;
         }
       } catch (error) {
         console.error('Status check failed:', error);
         document.getElementById('statusContent').innerHTML = `
           <p style="margin:0; color:#ef4444;">[Error] Backend not reachable</p>
-          <p style="font-size:13px; margin:4px 0 0 0;">Make sure the Flask server is running on localhost:5000</p>
+          <p style="font-size:13px; margin:4px 0 0 0;">Backend URL: ${API_URL}</p>
         `;
       }
     }
@@ -101,7 +102,7 @@
       output.textContent = "Loading activities...\n";
 
       try {
-        const res = await fetch("http://127.0.0.1:5000/strava/activities");
+        const res = await fetch(`${API_URL}/strava/activities`);
 
         if (!res.ok) {
           output.textContent = `Error: ${res.status}`;
@@ -117,7 +118,7 @@
             return;
         }
         console.log(activities)
-        const updateRes = await fetch("http://127.0.0.1:5000/person/update-activities", {
+        const updateRes = await fetch(`${API_URL}/person/update-activities`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 

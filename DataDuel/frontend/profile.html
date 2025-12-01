@@ -50,7 +50,7 @@
 
       <div id="error" style="display:none; padding:20px; text-align:center;">
         <p style="color:#ef4444;">[Error] Could not load profile</p>
-        <a class="btn" href="http://localhost:5000/auth/strava">Connect Strava</a>
+        <a class="btn" id="connectStravaBtn">Connect Strava</a>
       </div>
 
       <div class="group" role="navigation" aria-label="Profile subpages">
@@ -73,6 +73,13 @@
   <script type="module" src="api.js"></script>
   <script src="script.js"></script>
   <script type = "module">
+    import { API_URL } from './config.js';
+    
+    // Set up Connect Strava button
+    document.getElementById('connectStravaBtn')?.addEventListener('click', () => {
+      window.location.href = `${API_URL}/auth/strava`;
+    });
+    
     // Load profile data when page loads
     // async function loadProfile() {
     //   try {
@@ -125,7 +132,7 @@
             return;
         }
 
-        const res = await fetch("http://127.0.0.1:5000/person/get-activities", {
+        const res = await fetch(`${API_URL}/person/get-activities`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

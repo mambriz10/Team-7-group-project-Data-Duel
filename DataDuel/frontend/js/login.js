@@ -32,5 +32,5 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     // }
 
 
-    window.location.href = "http://localhost:5500/index.html"; // redirect to login
+    window.location.href = "/index.html"; // redirect to home
 });

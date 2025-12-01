@@ -3,8 +3,9 @@
 
 const fetch = require("node-fetch");
 
-// Change this to your backend URL
-const API_URL = "http://127.0.0.1:5000/person/update-activities";
+// Use config.js for API URL
+import { API_URL as BASE_API_URL } from './config.js';
+const API_URL = `${BASE_API_URL}/person/update-activities`;
 
 async function testUpdateActivities() {
     // Mock weekly activities payload
