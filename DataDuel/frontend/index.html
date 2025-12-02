@@ -94,10 +94,7 @@
     // Check status on load
     checkStatus();
 
-    import { db } from "/strava_user_frontend.js";
     async function testStravaActivities() {
-
-      
       const output = document.getElementById("activitiesOutput");
       output.textContent = "Loading activities...\n";
 
@@ -112,33 +109,8 @@
         const activities = await res.json();
         output.textContent = JSON.stringify(activities, null, 2);
 
-        const { data: { session } } = await db.auth.getSession();
-        if (!session) {
-            console.error("No active session found!");
-            return;
-        }
-        console.log(activities)
-        const updateRes = await fetch(`${API_URL}/person/update-activities`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              activities: activities, 
-              access_token: session.access_token 
-            })
-        });
-
-        const json = await updateRes.json();
-        console.log(json);
-
-        // const flattened = Object.values(data).flat();  // array of all activity objects
-        //       await fetch("http://127.0.0.1:5000/person/update-activities", {
-        //       method: "POST",
-        //       headers: { "Content-Type": "application/json" },
-        //       body: JSON.stringify({ activities: flattened })
-        //   });
-        // Pretty print JSON
-        
-
+        // Note: Activity update should be handled separately if needed
+        // The original implementation didn't automatically update activities here
         return activities;
       } catch (err) {
         output.textContent = "Request failed: " + err.message;

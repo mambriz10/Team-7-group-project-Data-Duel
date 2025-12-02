@@ -199,15 +199,24 @@
       // Show warning if no runs
       if (!stats.totalWorkouts || stats.totalWorkouts === 0) {
           document.getElementById('noDataWarning').style.display = 'block';
-      } else {
-          document.getElementById('noDataWarning').style.display = 'none';
       }
 
       // Show content, hide loading
       document.getElementById('loading').style.display = 'none';
       document.getElementById('profileContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
     }
-    // loadProfile_new();
+    
+    // Load on page ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadProfile);
+    } else {
+      loadProfile();
+    }
   </script>
 </body>
 </html>
