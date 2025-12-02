@@ -23,10 +23,10 @@ class Person:
         # data
         self.player_activities_by_day = {}
         # Metrics
-        self.average_speed = 0
-        self.max_speed = 0
-        self.distance = 0
-        self.moving_time = 0
+        self.average_speed = 1
+        self.max_speed = 1
+        self.distance = 1
+        self.moving_time = 1
 
         # These 4 are going to be total averages as well, like the 4 total variables below
         self.average_cadence = 0
@@ -37,7 +37,7 @@ class Person:
         # Ticked Variables
         self.streak = 0
         self.days_in_league = 0
-        self.total_workouts = 0
+        self.total_workouts = 1
 
         self.total_average_speed = self.average_speed
         self.total_max_speed = self.max_speed
@@ -45,10 +45,10 @@ class Person:
         self.total_moving_time = self.moving_time
 
         # Baselines used in score calculation
-        self.baseline_average_speed = 0
-        self.baseline_max_speed = 0
-        self.baseline_distance = 0
-        self.baseline_moving_time = 0
+        self.baseline_average_speed = 1
+        self.baseline_max_speed = 1
+        self.baseline_distance = 1
+        self.baseline_moving_time = 1
 
         # Placeholders for future objects
         self.score = Score.Score()
@@ -71,11 +71,15 @@ class Person:
         self.total_distance += distance
         self.total_moving_time += moving_time
 
-    def update_other_metrics(self, cadence, heartrate, time, elevation):
-        self.avegage_cadence += cadence
-        self.average_heartrate += heartrate
-        self.elapsed_time += time
-        self.total_elevation += elevation
+    def update_other_metrics(self, cadence, heartrate, elapsed_time, total_elevation_gain):
+        if cadence is not None:
+            self.average_cadence += cadence
+        if heartrate is not None:
+            self.average_heartrate += heartrate
+        if elapsed_time is not None:
+            self.total_elapsed_time += elapsed_time
+        if total_elevation_gain is not None:
+            self.total_elevation_gain += total_elevation_gain
 
     # REMEMBER to update workouts += 1 before using this method
     def update_baseline(self):
@@ -84,7 +88,7 @@ class Person:
         self.baseline_distance = self.total_distance / self.total_workouts
         self.baseline_moving_time = self.total_moving_time / self.total_workouts
 
-        self.average_cadence = self.avegage_cadence / self.total_workouts
+        self.average_cadence = self.average_cadence / self.total_workouts
         self.average_heartrate = self.average_heartrate / self.total_workouts
         self.elapsed_time = self.elapsed_time / self.total_workouts
         self.total_elevation = self.total_elevation / self.total_workouts
@@ -101,7 +105,7 @@ class Person:
         self.total_workouts += 1
 
     def populate_player_activities_by_day(self):
-        API_URL = "http://localhost:5000/strava/activities"
+        API_URL = "http://127.0.0.1:5000/strava/activities"
         try:
             response = requests.get(API_URL)
             response.raise_for_status()
@@ -110,14 +114,26 @@ class Person:
             print(f"Error fetching activities: {e}")
 
     def sum_activities(self):
-        for day in self.player_activities_by_day.values():
-            print("Found a day\n")
-            for activity in day:
-                print("Found an activity\n")
+        for weekday, activities in self.player_activities_by_day.items():
+            print(f"Processing {weekday}...")
+            for activity in activities:
+
+                print(f"Found an activity: {activity['name']}")
                 self.total_workouts += 1
-                self.__update_totals_from_args(activity.average_speed, activity.max_speed, activity.distance,
-                                               activity.moving_time)
-                self.update_other_metrics(activity.average_cadence, activity.heartrate, activity.elapsed_time,
-                                          activity.total_elevation_gain)
+
+                # Update totals — access dict keys instead of attributes
+                self.__update_totals_from_args(
+                    activity.get("average_speed", 0),
+                    activity.get("max_speed", 0),
+                    activity.get("distance", 0),
+                    activity.get("moving_time", 0)
+                )
+
+                self.update_other_metrics(
+                    activity.get("average_cadence", 0),
+                    activity.get("average_heartrate", 0),
+                    activity.get("elapsed_time", 0),
+                    activity.get("total_elevation_gain", 0)
+                )
 
         self.update_baseline()

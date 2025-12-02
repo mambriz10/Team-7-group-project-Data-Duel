@@ -35,10 +35,13 @@
         </div>
 
         <div class="statsline">
-          <div><div id="runs" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Runs</div></div>
+          <div><div id="runs" style="font-weight:700;"></div><div style="color:#666; font-size:12px;">Runs</div></div>
           <div><div id="distance" style="font-weight:700;">0 km</div><div style="color:#666; font-size:12px;">Distance</div></div>
           <div><div id="pace" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Avg Pace</div></div>
           <div><div id="score" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Score</div></div>
+          <div><div id="cadence" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Avg Cadence</div></div>
+          <div><div id="heartrate" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Avg HR</div></div>
+          <div><div id="elevation" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Elevation</div></div>
         </div>
       </div>
 
@@ -71,7 +74,7 @@
     async function loadProfile() {
       try {
         const data = await api.getProfile();
-        
+        console.log(data)
         // Update UI with data
         document.getElementById('userName').textContent = data.name;
         document.getElementById('userInfo').textContent = `@${data.username} • ${data.location}`;
