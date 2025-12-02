@@ -591,6 +591,7 @@ def get_friend_status(user_id: str, other_user_id: str):
             return "friends", None
         
         # Check if pending request sent
+    
         sent_request = db.table("friend_requests").select("id").eq(
             "from_user_id", user_id
         ).eq("to_user_id", other_user_id).eq("status", "pending").maybe_single().execute()

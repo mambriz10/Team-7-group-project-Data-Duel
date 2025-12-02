@@ -19,7 +19,7 @@ from Score import Score
 from datetime import datetime
 from supabase_stravaDB.strava_user import (
     # User & credentials
-    add_member_to_leaderboard, insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, 
+    create_leaderboard, add_member_to_leaderboard, insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, 
     insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET,
     # Token storage (Supabase)
     save_strava_tokens, get_strava_tokens, refresh_strava_token,
