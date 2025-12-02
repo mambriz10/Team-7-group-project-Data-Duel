@@ -22,7 +22,6 @@ class Person:
 
         # data
         self.player_activities_by_day = {}
-<<<<<<< HEAD
         # Metrics
         self.average_speed = 1
         self.max_speed = 1
@@ -34,8 +33,6 @@ class Person:
         self.average_heartrate = 0
         self.elapsed_time = 0
         self.total_elevation = 0
-=======
->>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
 
         # Ticked Variables
         self.streak = 0
@@ -85,7 +82,6 @@ class Person:
         self.total_distance += distance
         self.total_moving_time += moving_time
 
-<<<<<<< HEAD
     def update_other_metrics(self, cadence, heartrate, elapsed_time, total_elevation_gain):
         if cadence is not None:
             self.average_cadence += cadence
@@ -95,13 +91,6 @@ class Person:
             self.total_elapsed_time += elapsed_time
         if total_elevation_gain is not None:
             self.total_elevation_gain += total_elevation_gain
-=======
-    def update_other_metrics(self, cadence, heartrate, time, elevation):
-        self.total_average_cadence += cadence
-        self.total_average_heartrate += heartrate
-        self.total_elapsed_time += time
-        self.total_elevation += elevation
->>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
 
     # REMEMBER to update workouts += 1 before using this method
     def update_baseline(self):
@@ -110,17 +99,10 @@ class Person:
         self.baseline_distance = self.total_distance / self.total_workouts
         self.baseline_moving_time = self.total_moving_time / self.total_workouts
 
-<<<<<<< HEAD
         self.average_cadence = self.average_cadence / self.total_workouts
         self.average_heartrate = self.average_heartrate / self.total_workouts
         self.elapsed_time = self.elapsed_time / self.total_workouts
         self.total_elevation = self.total_elevation / self.total_workouts
-=======
-        self.baseline_average_cadence = self.total_average_cadence / self.total_workouts
-        self.baseline_average_heartrate = self.total_average_heartrate / self.total_workouts
-        self.baseline_elapsed_time = self.total_elapsed_time / self.total_workouts
-        self.baseline_elevation = self.total_elevation / self.total_workouts
->>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
 
     # Used in settings to change privacy to change which leaderboard name is shown
     def show_real_name(self, check):
