@@ -25,6 +25,8 @@
         <a class="btn" href="profile.html">My Profile</a>
         <button id="syncBtn" class="btn" style="display:none;">Sync Activities</button>
       </div>
+
+      <div id="activitiesOutput"></div>
     </section>
   </main>
   
@@ -34,15 +36,17 @@
     <div class="row">
       <a href="profile.html" aria-label="Profile"><div class="icon">Profile</div></a>
       <a href="settings.html" aria-label="Settings"><div class="icon">Settings</div></a>
-      <a href="index.html" aria-label="Home" class="active"><div class="icon">Home</div></a>
+      <a href="login.html" aria-label="Home" class="active"><div class="icon">Home</div></a>
       <a href="social.html" aria-label="Social"><div class="icon">Social</div></a>
       <a href="routes.html" aria-label="Routes"><div class="icon">Routes</div></a>
     </div>
   </nav>
 
-  <script src="api.js"></script>
+  <script type="module" src="api.js"></script>
   <script src="script.js"></script>
-  <script>
+  <script type="module">
+    import { API_URL } from './config.js';
+
     async function checkStatus() {
       try {
         const status = await api.getStatus();
@@ -57,14 +61,14 @@
         } else {
           statusContent.innerHTML = `
             <p style="margin:0; color:#f59e0b;">[Warning] Not connected to Strava</p>
-            <a class="btn primary" href="http://localhost:5500/strava.html" style="margin-top:8px;">Connect Strava</a>
+            <a class="btn primary" href="${API_URL}/auth/strava" style="margin-top:8px;">Connect Strava</a>
           `;
         }
       } catch (error) {
         console.error('Status check failed:', error);
         document.getElementById('statusContent').innerHTML = `
           <p style="margin:0; color:#ef4444;">[Error] Backend not reachable</p>
-          <p style="font-size:13px; margin:4px 0 0 0;">Make sure the Flask server is running on localhost:5000</p>
+          <p style="font-size:13px; margin:4px 0 0 0;">Backend URL: ${API_URL}</p>
         `;
       }
     }
@@ -89,6 +93,58 @@
     
     // Check status on load
     checkStatus();
+
+    import { db } from "/strava_user_frontend.js";
+    async function testStravaActivities() {
+
+      
+      const output = document.getElementById("activitiesOutput");
+      output.textContent = "Loading activities...\n";
+
+      try {
+        const res = await fetch(`${API_URL}/strava/activities`);
+
+        if (!res.ok) {
+          output.textContent = `Error: ${res.status}`;
+          return;
+        }
+
+        const activities = await res.json();
+        output.textContent = JSON.stringify(activities, null, 2);
+
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) {
+            console.error("No active session found!");
+            return;
+        }
+        console.log(activities)
+        const updateRes = await fetch(`${API_URL}/person/update-activities`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              activities: activities, 
+              access_token: session.access_token 
+            })
+        });
+
+        const json = await updateRes.json();
+        console.log(json);
+
+        // const flattened = Object.values(data).flat();  // array of all activity objects
+        //       await fetch("http://127.0.0.1:5000/person/update-activities", {
+        //       method: "POST",
+        //       headers: { "Content-Type": "application/json" },
+        //       body: JSON.stringify({ activities: flattened })
+        //   });
+        // Pretty print JSON
+        
+
+        return activities;
+      } catch (err) {
+        output.textContent = "Request failed: " + err.message;
+      }
+    }
+    testStravaActivities();
   </script>
 </body>
 </html>

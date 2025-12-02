@@ -1,0 +1,167 @@
+# =============================================================================
+# CLOUDFLARE PAGES CONFIGURATION FOR DATADUEL
+# =============================================================================
+# DataDuel - Strava-based fitness competition platform
+# Frontend: Static HTML/CSS/JS (in DataDuel/frontend/)
+# Backend: Flask API (deployed separately to Render/Heroku)
+# Database: Supabase
+#
+# IMPORTANT: Delete any "Deploy command" in Cloudflare Pages dashboard!
+# Pages deployments should NOT use "npx wrangler deploy"
+# =============================================================================
+
+name = "dataduel"
+compatibility_date = "2025-11-24"
+
+# Specify the assets directory for static file deployment
+[assets]
+directory = "DataDuel/frontend"
+
+# =============================================================================
+# CONFIGURATION NOTES FOR CLOUDFLARE PAGES
+# =============================================================================
+#
+# For Cloudflare Pages deployments:
+#
+# 1. Build Configuration (set in dashboard):
+#    - Framework preset: None
+#    - Build command: (leave empty)
+#    - Build output directory: DataDuel/frontend
+#    - Root directory: (leave empty)
+#
+# 2. Headers & Redirects:
+#    - Configured via _headers and _redirects files in DataDuel/frontend/
+#    - These files are automatically processed by Cloudflare Pages
+#
+# 3. Environment Variables:
+#    - Set in Dashboard → Pages → Settings → Environment Variables
+#    - Example: BACKEND_API_URL, SUPABASE_URL, etc.
+#
+# 4. The wrangler.toml file is OPTIONAL for Pages.
+#    - Dashboard configuration takes precedence
+#    - This file is kept minimal to avoid conflicts
+#
+# =============================================================================
+
+# =============================================================================
+# DEPLOYMENT SETTINGS
+# =============================================================================
+# Cloudflare Pages automatically detects:
+# - Static assets in the bucket directory
+# - _headers file for custom headers
+# - _redirects file for custom redirects
+# - index.html as the default document
+#
+# Project structure deployed:
+# ├── index.html              → Home page (auth, sync)
+# ├── profile.html            → User profile with stats
+# ├── profile-stats.html      → Detailed statistics
+# ├── profile-challenges.html → Challenge tracking
+# ├── profile-edit.html       → Profile editing
+# ├── leaderboards.html       → Global rankings
+# ├── social.html             → Friends & leagues
+# ├── socialTest.html         → Friends testing page
+# ├── routes.html             → Route discovery
+# ├── settings.html           → App settings
+# ├── login.html              → User login
+# ├── register.html           → User registration
+# ├── Strava.html             → Strava connection
+# ├── styles.css              → Global styles
+# ├── script.js               → Tab navigation
+# ├── api.js                  → API client
+# ├── config.js               → Environment config (detects dev/prod)
+# ├── testBackend.js          → Backend testing utilities
+# ├── testingAPI.js           → API testing utilities
+# ├── strava_user_frontend.js → Strava user management
+# ├── _headers                → Cloudflare custom headers
+# ├── _redirects              → Cloudflare redirects
+# ├── js/
+# │   ├── login.js            → Login logic
+# │   └── register.js         → Registration logic
+# └── supabaseClient/
+#     └── supabaseClient.js   → Supabase initialization
+#
+# =============================================================================
+
+# =============================================================================
+# NOTES FOR DEPLOYMENT
+# =============================================================================
+# 1. Backend URL Configuration:
+#    - Update config.js with production backend URL after deploying to Render
+#    - Example: apiUrl: 'https://dataduel-backend.onrender.com'
+#
+# 2. CORS Configuration:
+#    - Update backend app.py CORS origins to include Cloudflare Pages URL
+#    - Example: CORS(app, origins=["https://dataduel.pages.dev"])
+#
+# 3. Strava OAuth:
+#    - Update Strava API callback domain to match backend URL
+#    - Go to: https://www.strava.com/settings/api
+#    - Set: "Authorization Callback Domain" to your Render backend domain
+#
+# 4. Environment Variables (Set in Cloudflare Dashboard):
+#    - Optional: BACKEND_API_URL (can override config.js)
+#    - Optional: SUPABASE_URL (if needed client-side)
+#    - DO NOT store secrets here (use Cloudflare env vars instead)
+#
+# 5. Custom Domain (Optional):
+#    - Add custom domain in Cloudflare Pages dashboard
+#    - Update CORS and Strava OAuth accordingly
+#
+# 6. Testing:
+#    - Visit: https://your-project.pages.dev
+#    - Test: Connect Strava → Sync Activities → View Profile
+#    - Check: Browser console for config.js environment detection
+#
+# 7. Monitoring:
+#    - Check Cloudflare Analytics for traffic
+#    - Monitor Cloudflare Pages deployment logs
+#    - Watch for CORS errors (indicates misconfiguration)
+#
+# =============================================================================
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+# Issue: "Failed to deploy"
+# → Check that pages_build_output_dir points to DataDuel/frontend
+# → Verify index.html exists in that directory
+#
+# Issue: "API calls fail"
+# → Check config.js has correct backend URL
+# → Verify CORS is configured in backend app.py
+# → Check browser console for errors
+#
+# Issue: "Strava OAuth fails"
+# → Verify Strava callback domain matches backend (not frontend)
+# → Check backend REDIRECT_URI in app.py
+#
+# Issue: "Friends feature not working"
+# → Verify backend is deployed and running
+# → Check that friends_storage.py is included in backend deployment
+# → Verify friends.json is created in backend data/ directory
+#
+# Issue: "Assets not loading"
+# → Check that all files are in DataDuel/frontend/
+# → Verify no absolute paths in HTML (use relative paths)
+# → Check browser console for 404 errors
+#
+# =============================================================================
+
+# =============================================================================
+# QUICK START COMMANDS
+# =============================================================================
+# Deploy using Wrangler CLI (optional):
+#   npx wrangler pages deploy DataDuel/frontend --project-name=dataduel
+#
+# Or use Cloudflare Dashboard (recommended):
+#   1. Go to: https://dash.cloudflare.com
+#   2. Workers & Pages → Create → Pages → Connect to Git
+#   3. Select repo: Team-7-group-project-Data-Duel
+#   4. Build settings:
+#      - Build command: (empty)
+#      - Build output directory: DataDuel/frontend
+#   5. Deploy!
+#
+# =============================================================================
+

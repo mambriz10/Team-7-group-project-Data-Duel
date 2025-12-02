@@ -3,7 +3,10 @@
  * Handles all communication with Flask API
  */
 
-const API_BASE_URL = 'http://localhost:5000';
+// Import configuration from config.js
+import { API_URL } from './config.js';
+
+const API_BASE_URL = API_URL;
 
 class DataDuelAPI {
     constructor(baseURL = API_BASE_URL) {
@@ -115,8 +118,10 @@ class DataDuelAPI {
 // Create global API instance
 const api = new DataDuelAPI();
 
-// Export for use in other scripts
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { DataDuelAPI, api };
-}
+// Make available globally for non-module scripts
+window.api = api;
+window.DataDuelAPI = DataDuelAPI;
+
+// Export for ES6 modules
+export { DataDuelAPI, api };
 

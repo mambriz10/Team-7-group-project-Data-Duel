@@ -22,6 +22,7 @@ class Person:
 
         # data
         self.player_activities_by_day = {}
+<<<<<<< HEAD
         # Metrics
         self.average_speed = 1
         self.max_speed = 1
@@ -33,22 +34,35 @@ class Person:
         self.average_heartrate = 0
         self.elapsed_time = 0
         self.total_elevation = 0
+=======
+>>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
 
         # Ticked Variables
         self.streak = 0
         self.days_in_league = 0
         self.total_workouts = 1
 
-        self.total_average_speed = self.average_speed
-        self.total_max_speed = self.max_speed
-        self.total_distance = self.distance
-        self.total_moving_time = self.moving_time
+        # Metrics
+        self.total_average_speed = 0
+        self.total_max_speed = 0
+        self.total_distance = 0
+        self.total_moving_time = 0
+
+        self.total_average_cadence = 0
+        self.total_average_heartrate = 0
+        self.total_elapsed_time = 0
+        self.total_elevation = 0
 
         # Baselines used in score calculation
         self.baseline_average_speed = 1
         self.baseline_max_speed = 1
         self.baseline_distance = 1
         self.baseline_moving_time = 1
+
+        self.baseline_average_cadence = 0
+        self.baseline_average_heartrate = 0
+        self.baseline_elapsed_time = 0
+        self.baseline_elevation = 0
 
         # Placeholders for future objects
         self.score = Score.Score()
@@ -71,6 +85,7 @@ class Person:
         self.total_distance += distance
         self.total_moving_time += moving_time
 
+<<<<<<< HEAD
     def update_other_metrics(self, cadence, heartrate, elapsed_time, total_elevation_gain):
         if cadence is not None:
             self.average_cadence += cadence
@@ -80,6 +95,13 @@ class Person:
             self.total_elapsed_time += elapsed_time
         if total_elevation_gain is not None:
             self.total_elevation_gain += total_elevation_gain
+=======
+    def update_other_metrics(self, cadence, heartrate, time, elevation):
+        self.total_average_cadence += cadence
+        self.total_average_heartrate += heartrate
+        self.total_elapsed_time += time
+        self.total_elevation += elevation
+>>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
 
     # REMEMBER to update workouts += 1 before using this method
     def update_baseline(self):
@@ -88,10 +110,17 @@ class Person:
         self.baseline_distance = self.total_distance / self.total_workouts
         self.baseline_moving_time = self.total_moving_time / self.total_workouts
 
+<<<<<<< HEAD
         self.average_cadence = self.average_cadence / self.total_workouts
         self.average_heartrate = self.average_heartrate / self.total_workouts
         self.elapsed_time = self.elapsed_time / self.total_workouts
         self.total_elevation = self.total_elevation / self.total_workouts
+=======
+        self.baseline_average_cadence = self.total_average_cadence / self.total_workouts
+        self.baseline_average_heartrate = self.total_average_heartrate / self.total_workouts
+        self.baseline_elapsed_time = self.total_elapsed_time / self.total_workouts
+        self.baseline_elevation = self.total_elevation / self.total_workouts
+>>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
 
     # Used in settings to change privacy to change which leaderboard name is shown
     def show_real_name(self, check):
@@ -113,6 +142,34 @@ class Person:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching activities: {e}")
 
+
+    def sum_activities(self):
+        # If structure is { "Monday": [act1, act2], "Tuesday": [] }
+        for day in self.player_activities_by_day.values():
+            # print("Found a day")
+            for activity in day:
+                # print("Found an activity")
+                self.total_workouts += 1
+
+                # If structure of acitvity is the JSON response, it should be a Python dictionary
+                # If 'key' is missing, it defaults to 0
+                self.__update_totals_from_args(
+                    activity.get('average_speed', 0),
+                    activity.get('max_speed', 0),
+                    activity.get('distance', 0),
+                    activity.get('moving_time', 0)
+                )
+
+                self.update_other_metrics(
+                    activity.get('average_cadence', 0),
+                    activity.get('average_heartrate', 0), # only works if user has a heart rate from api call
+                    activity.get('elapsed_time', 0),
+                    activity.get('total_elevation_gain', 0)
+                )
+
+        self.update_baseline()
+
+"""
     def sum_activities(self):
         for weekday, activities in self.player_activities_by_day.items():
             print(f"Processing {weekday}...")
@@ -137,3 +194,4 @@ class Person:
                 )
 
         self.update_baseline()
+"""

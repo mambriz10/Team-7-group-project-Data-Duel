@@ -34,6 +34,10 @@
           </div>
         </div>
 
+        <div id="noDataWarning" style="display:none; padding:12px; margin:12px 0; background:#fef3c7; border:1px solid #fbbf24; border-radius:8px; text-align:center;">
+          <p style="margin:0; color:#92400e; font-size:14px;">⚠️ No activity data yet. <a href="index.html" style="color:#92400e; font-weight:600;">Sync your activities</a> to see your stats!</p>
+        </div>
+
         <div class="statsline">
           <div><div id="runs" style="font-weight:700;"></div><div style="color:#666; font-size:12px;">Runs</div></div>
           <div><div id="distance" style="font-weight:700;">0 km</div><div style="color:#666; font-size:12px;">Distance</div></div>
@@ -47,7 +51,7 @@
 
       <div id="error" style="display:none; padding:20px; text-align:center;">
         <p style="color:#ef4444;">[Error] Could not load profile</p>
-        <a class="btn" href="http://localhost:5000/auth/strava">Connect Strava</a>
+        <a class="btn" id="connectStravaBtn">Connect Strava</a>
       </div>
 
       <div class="group" role="navigation" aria-label="Profile subpages">
@@ -67,8 +71,9 @@
     </div>
   </nav>
 
-  <script src="api.js"></script>
+  <script type="module" src="api.js"></script>
   <script src="script.js"></script>
+<<<<<<< HEAD
   <script>
     // Load profile data when page loads
     async function loadProfile() {
@@ -94,13 +99,120 @@
         document.getElementById('error').style.display = 'block';
       }
     }
+=======
+  <script type = "module">
+    import { API_URL } from './config.js';
+>>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
     
-    // Load on page ready
+    // Set up Connect Strava button
+    document.getElementById('connectStravaBtn')?.addEventListener('click', () => {
+      window.location.href = `${API_URL}/auth/strava`;
+    });
+    
+    // Load profile data when page loads
+    // async function loadProfile() {
+    //   try {
+    //     const data = await api.getProfile();
+    //     console.log('Profile data loaded:', data);
+        
+    //     // Update UI with data
+    //     document.getElementById('userName').textContent = data.name;
+    //     document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
+    //     document.getElementById('avatar').src = data.avatar;
+        
+    //     document.getElementById('runs').textContent = data.stats.runs || 0;
+    //     document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
+    //     document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
+    //     document.getElementById('score').textContent = data.stats.score || 0;
+        
+    //     // Show warning if no data
+    //     if (!data.stats.runs || data.stats.runs === 0) {
+    //       document.getElementById('noDataWarning').style.display = 'block';
+    //     }
+        
+    //     // Show content, hide loading
+    //     document.getElementById('loading').style.display = 'none';
+    //     document.getElementById('profileContent').style.display = 'block';
+    //   } catch (error) {
+    //     console.error('Failed to load profile:', error);
+    //     document.getElementById('loading').style.display = 'none';
+    //     document.getElementById('error').style.display = 'block';
+    //   }
+    // }
+    
+    // // Load on page ready
+    // if (document.readyState === 'loading') {
+    //   document.addEventListener('DOMContentLoaded', loadProfile);
+    // } else {
+    //   loadProfile();
+    // }
+
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadProfile);
+      document.addEventListener('DOMContentLoaded', loadProfile_new);
     } else {
-      loadProfile();
+      loadProfile_new();
     }
+
+    import { db } from "/strava_user_frontend.js";
+    async function loadProfile_new() {
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) {
+            console.error("No active session found!");
+            return;
+        }
+
+        const res = await fetch(`${API_URL}/person/get-activities`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            access_token: session.access_token
+          })
+
+        });
+
+        // Parse the JSON response
+        const data = await res.json();
+
+        // // Log it in a readable format
+        // console.log(data);
+        const stats = {
+          username: data.username,
+          totalWorkouts: data.total_workouts,
+          totalDistance: data.total_distance,
+          averageSpeed: data.average_speed,
+          maxSpeed: data.max_speed,
+          streak: data.streak,
+          badges: data.badges,
+          weeklyChallenges: data.weekly_challenges
+      };
+
+      // Update profile info
+      document.getElementById('userName').textContent = stats.username || 'Unknown';
+      // You can add location if available in your backend
+      document.getElementById('userInfo').textContent = `@${stats.username || 'unknown'}`;
+      // If you have an avatar URL, set it; else, default image
+      document.getElementById('avatar').src = data.avatar || '/default-avatar.png';
+
+      // Update stats
+      document.getElementById('distance').textContent = stats.totalDistance.toFixed(1) + ' km';
+      document.getElementById('pace').textContent = stats.averageSpeed 
+          ? (1000 / stats.averageSpeed / 60).toFixed(2) + ' min/km'  // m/s -> min/km
+          : '0 min/km';
+      document.getElementById('score').textContent = stats.totalWorkouts;  // or compute your own score
+      document.getElementById('runs').textContent = stats.totalWorkouts;
+
+      // Show warning if no runs
+      if (!stats.totalWorkouts || stats.totalWorkouts === 0) {
+          document.getElementById('noDataWarning').style.display = 'block';
+      } else {
+          document.getElementById('noDataWarning').style.display = 'none';
+      }
+
+      // Show content, hide loading
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('profileContent').style.display = 'block';
+    }
+    // loadProfile_new();
   </script>
 </body>
 </html>

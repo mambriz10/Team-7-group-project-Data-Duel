@@ -58,7 +58,12 @@
             </section>
     </main>
 
-    <script>
+    <script type="module">
+
+        import { db } from "/strava_user_frontend.js";
+        import { API_URL } from './config.js';
+
+        const BACKEND_URL = API_URL;
         const clientIdInput = document.getElementById("client-id");
         const clientSecretInput = document.getElementById("client-secret");
         const connectBtn = document.getElementById("connectStrava");
@@ -68,15 +73,21 @@
 
             const clientId = clientIdInput.value;
             const clientSecret = clientSecretInput.value;
-            const res =  await fetch("http://127.0.0.1:5000/save-strava-credentials", {
+            const { data: { session } } = await db.auth.getSession();
+
+            const res =  await fetch(`${BACKEND_URL}/save-strava-credentials`, {
                 method: "POST",
                 headers: {"content-Type": "application/json"},
-                body: JSON.stringify({clientId, clientSecret})
+                body: JSON.stringify({
+                    clientId,
+                    clientSecret,
+                    access_token: session.access_token
+                })
             });
             
             if (res.ok) {
                 // Redirect user to Strava OAuth after saving credentials
-                window.location.href = "http://127.0.0.1:5000/auth/strava";
+                window.location.href = `${API_URL}/auth/strava`;
             } else {
                 const errorData = await res.json();
                 console.error("Failed to save credentials:", errorData);

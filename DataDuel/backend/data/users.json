@@ -2,11 +2,11 @@
   "67126670": {
     "id": "67126670",
     "name": "Daniel Chavez",
-    "username": null,
-    "display_name": "Daniel",
+    "username": "daniel",
+    "display_name": "Default_Username",
     "avatar": "https://dgalywyr863hv.cloudfront.net/pictures/athletes/67126670/18583109/5/large.jpg",
-    "location": "",
+    "location": "Unknown",
     "strava_id": "67126670",
-    "updated_at": "2025-11-11T13:14:01.075595"
+    "updated_at": "2025-11-22T16:09:49.916123"
   }
 }

@@ -1,15 +1,58 @@
-# Environment variables
-.env
-
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual environments
-venv/
-.env/
-env/
+# Environment variables
+.env
+.env.local
+.env.*.local
 
-# Strava tokens
+# Credentials (IMPORTANT - never commit these!)
+credentials.json
+strava_credentials.json
 tokens.json
-tokens_.json
+CREDENTIALS_SUMMARY.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node modules (if any)
+node_modules/
+
+# Build logs
+build-logs*.txt

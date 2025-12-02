@@ -13,35 +13,62 @@
     .who { display:flex; align-items:center; gap:12px; }
     .who img { width:40px; height:40px; border-radius:50%; border:1px solid #e5e7eb; }
     .meta { color:#4113ae; font-size:12px; }
-    .toolbar { display:flex; gap:8px; justify-content:center; margin-bottom:12px; }
+    .toolbar { display:flex; gap:8px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
+    .search-box { display:flex; gap:8px; margin-bottom:16px; }
+    .search-box input { flex:1; padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; }
+    .badge-status { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; }
+    .badge-friends { background:#10b981; color:white; }
+    .badge-pending { background:#f59e0b; color:white; }
+    .badge-sent { background:#6366f1; color:white; }
+    #loading { text-align:center; padding:20px; color:#666; }
+    .empty-state { text-align:center; padding:30px; color:#666; }
   </style>
 </head>
 <body>
   <main class="page">
     <section class="card list" aria-label="Social">
       <h1>Social</h1>
-      <p>Friends & Leagues (static placeholders for now).</p>
+      <p>Connect with other runners and create leagues.</p>
 
       <div class="toolbar">
-        <a class="btn" href="#" aria-disabled="true" onclick="return false;">Find Friends</a>
-        <a id="createLeagueBtn" class="btn primary" href="#">Create League</a>
+        <button id="searchBtn" class="btn primary">Find Friends</button>
+        <button id="createLeagueBtn" class="btn">Create League</button>
       </div>
 
-      <h2 class="section-title">Your Leagues</h2>
-      <p class="meta" id="league-empty">No leagues yet. Create one to get started.</p>
-      <div id="league-list"></div>
+      <!-- Search Dialog -->
+      <dialog id="searchDialog" aria-label="Find Friends">
+        <div style="padding:20px; min-width:400px;">
+          <h3 style="margin:0 0 16px;">Find Friends</h3>
+          
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by name or username..." />
+            <button id="searchExecuteBtn" class="btn primary">Search</button>
+          </div>
 
+          <div id="searchResults"></div>
+          <div id="searchLoading" style="display:none; text-align:center; padding:20px;">
+            <p>Searching...</p>
+          </div>
+          <div id="searchEmpty" class="empty-state" style="display:none;">
+            <p>No users found. Try a different search term.</p>
+          </div>
+
+          <div style="text-align:right; margin-top:16px;">
+            <button id="searchCloseBtn" class="btn">Close</button>
+          </div>
+        </div>
+      </dialog>
+
+      <!-- League Dialog -->
       <dialog id="leagueDialog" aria-label="Create League">
         <form method="dialog" id="leagueForm" class="form" style="padding:16px;">
           <h3 style="margin:0 0 8px;">Create League</h3>
         
-          <!-- League Name -->
           <div>
             <label for="leagueName">League name</label>
             <input id="leagueName" name="name" required placeholder="e.g., Fall 5K Showdown" />
           </div>
         
-          <!-- Duration: 1–2 weeks -->
           <div>
             <label for="leagueDuration">Duration</label>
             <select id="leagueDuration" name="duration" required>
@@ -51,22 +78,17 @@
             <div class="hint meta">Must be 1–2 weeks.</div>
           </div>
         
-          <!-- League Size: 4–12 -->
           <div>
             <label for="leagueSize">League size</label>
             <input id="leagueSize" name="size" type="number" min="4" max="12" value="6" required />
             <div class="hint meta">Minimum 4, maximum 12 members (including you).</div>
           </div>
         
-          <!-- Invite Members: only friends (checkboxes) -->
           <fieldset style="border:0; padding:0; margin:0;">
             <legend style="font-weight:600; margin-bottom:6px;">Invite members (friends only)</legend>
             <div class="hint meta" style="margin-bottom:6px;">Choose from your friends list below.</div>
-            <div class="invite-grid" style="display:grid; gap:8px;">
-              <label class="inline"><input type="checkbox" name="invites" value="user1" /> User1</label>
-              <label class="inline"><input type="checkbox" name="invites" value="user2" /> User2</label>
-              <label class="inline"><input type="checkbox" name="invites" value="user3" /> User3</label>
-              <!-- Add more friend checkboxes as you expand the friends list -->
+            <div id="leagueFriendsList" class="invite-grid" style="display:grid; gap:8px;">
+              <p class="meta">Loading friends...</p>
             </div>
           </fieldset>
         
@@ -77,47 +99,27 @@
         </form>
       </dialog>
 
-
-      <h2 style="font-size:16px; margin:8px 0 4px;">Your Friends</h2>
-      <div class="item">
-        <div class="who">
-          <img src="https://api.dicebear.com/7.x/identicon/svg?seed=alex" alt="Alex" />
-          <div>
-            <div style="font-weight:700;">user1</div>
-            <div class="meta">Last run: 5.2 mi • +2.1%</div>
-          </div>
-        </div>
-        <a class="btn" href="leaderboards.html">View on Leaderboard</a>
+      <!-- Friend Requests Section -->
+      <div id="requestsSection" style="display:none;">
+        <h2 style="font-size:16px; margin:16px 0 8px;">Friend Requests</h2>
+        <div id="requestsList"></div>
       </div>
 
-      <div class="item">
-        <div class="who">
-          <img src="https://api.dicebear.com/7.x/identicon/svg?seed=jessica" alt="Jessica" />
-          <div>
-            <div style="font-weight:700;">user2</div>
-            <div class="meta">Last run: 3.1 mi • +1.3%</div>
-          </div>
-        </div>
-        <a class="btn" href="leaderboards.html">View on Leaderboard</a>
+      <!-- Friends List Section -->
+      <h2 style="font-size:16px; margin:16px 0 8px;">Your Friends</h2>
+      <div id="loading">Loading friends...</div>
+      <div id="friendsList"></div>
+      <div id="friendsEmpty" class="empty-state" style="display:none;">
+        <p>No friends yet. Click "Find Friends" to connect with other runners!</p>
       </div>
 
-      <div class="item">
-        <div class="who">
-          <img src="https://api.dicebear.com/7.x/identicon/svg?seed=marcos" alt="Marcos" />
-          <div>
-            <div style="font-weight:700;">user3</div>
-            <div class="meta">Last run: 4.0 mi • +0.8%</div>
-          </div>
-        </div>
-        <a class="btn" href="leaderboards.html">View on Leaderboard</a>
-      </div>
-
-      <h2 style="font-size:16px; margin:16px 0 4px;">Requests</h2>
-      <p class="meta">No pending requests.</p>
+      <!-- Leagues Section -->
+      <h2 style="font-size:16px; margin:24px 0 8px;">Your Leagues</h2>
+      <p class="meta" id="league-empty">No leagues yet. Create one to get started.</p>
+      <div id="league-list"></div>
     </section>
   </main>
 
-  <!-- Bottom tabs: Profile, Settings, Home, Social, Routes -->
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
       <a href="profile.html" aria-label="Profile"><div class="icon">👤</div><div>Profile</div></a>
@@ -128,75 +130,380 @@
     </div>
   </nav>
 
+  <script type="module" src="api.js"></script>
   <script src="script.js"></script>
-  <script>
-  // --- Minimal local leagues manager (no backend) ---
-  (function(){
-    const KEY = 'dd_leagues_v2'; // bump key so old format doesn't collide
+  <script type="module">
+  import { API_URL } from './config.js';
+  
+  (function() {
+    const BACKEND_URL = API_URL;
+    
+    // DOM Elements
+    const loadingDiv = document.getElementById('loading');
+    const friendsList = document.getElementById('friendsList');
+    const friendsEmpty = document.getElementById('friendsEmpty');
+    const requestsSection = document.getElementById('requestsSection');
+    const requestsList = document.getElementById('requestsList');
+    const searchDialog = document.getElementById('searchDialog');
+    const searchResults = document.getElementById('searchResults');
+    const searchLoading = document.getElementById('searchLoading');
+    const searchEmpty = document.getElementById('searchEmpty');
+    const searchInput = document.getElementById('searchInput');
 
-    // Friends allowed to be invited (must match the checkboxes above)
-    const FRIENDS = [
-      { id: 'user_1', name: 'user1' },
-      { id: 'user_2', name: 'user2' },
-      { id: 'user_3', name: 'user3' }
-    ];
+    // Load Friends
+    async function loadFriends() {
+      try {
+        loadingDiv.style.display = 'block';
+        friendsList.innerHTML = '';
+        friendsEmpty.style.display = 'none';
 
-    const dialog = document.getElementById('leagueDialog');
-    const openBtn = document.getElementById('createLeagueBtn');
-    const cancelBtn = document.getElementById('leagueCancel');
-    const form = document.getElementById('leagueForm');
+        const response = await fetch(`${BACKEND_URL}/api/friends`);
+        if (!response.ok) throw new Error('Failed to load friends');
+        
+        const data = await response.json();
+        loadingDiv.style.display = 'none';
+
+        if (data.friends.length === 0) {
+          friendsEmpty.style.display = 'block';
+          return;
+        }
+
+        data.friends.forEach(friend => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.innerHTML = `
+            <div class="who">
+              <img src="${friend.avatar}" alt="${friend.name}" />
+              <div>
+                <div style="font-weight:700;">${friend.name}</div>
+                <div class="meta">
+                  @${friend.username} • Last run: ${friend.last_run_distance} km • 
+                  Streak: ${friend.streak} days • Score: ${friend.score}
+                </div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <a class="btn" href="leaderboards.html">Leaderboard</a>
+              <button class="btn" onclick="removeFriend('${friend.user_id}', '${friend.name}')">Remove</button>
+            </div>
+          `;
+          friendsList.appendChild(item);
+        });
+      } catch (error) {
+        console.error('Error loading friends:', error);
+        loadingDiv.innerHTML = '<p style="color:#ef4444;">Failed to load friends. Please try again.</p>';
+      }
+    }
+
+    // Load Friend Requests
+    async function loadRequests() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends/requests`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        
+        if (data.requests.length === 0) {
+          requestsSection.style.display = 'none';
+          return;
+        }
+
+        requestsSection.style.display = 'block';
+        requestsList.innerHTML = '';
+
+        data.requests.forEach(request => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.innerHTML = `
+            <div class="who">
+              <img src="${request.avatar}" alt="${request.name}" />
+              <div>
+                <div style="font-weight:700;">${request.name}</div>
+                <div class="meta">@${request.username} • ${request.location || 'Unknown location'}</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn primary" onclick="acceptRequest('${request.user_id}', '${request.name}')">Accept</button>
+              <button class="btn" onclick="rejectRequest('${request.user_id}')">Decline</button>
+            </div>
+          `;
+          requestsList.appendChild(item);
+        });
+      } catch (error) {
+        console.error('Error loading requests:', error);
+      }
+    }
+
+    // Search Users
+    async function searchUsers(query) {
+      if (!query || query.length < 2) {
+        alert('Please enter at least 2 characters to search');
+        return;
+      }
+
+      searchResults.innerHTML = '';
+      searchLoading.style.display = 'block';
+      searchEmpty.style.display = 'none';
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Search failed');
+        
+        const data = await response.json();
+        searchLoading.style.display = 'none';
+
+        if (data.users.length === 0) {
+          searchEmpty.style.display = 'block';
+          return;
+        }
+
+        data.users.forEach(user => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          
+          let actionButton = '';
+          let statusBadge = '';
+          
+          switch(user.friendship_status) {
+            case 'friends':
+              statusBadge = '<span class="badge-status badge-friends">Friends</span>';
+              break;
+            case 'pending_sent':
+              statusBadge = '<span class="badge-status badge-sent">Request Sent</span>';
+              break;
+            case 'pending_received':
+              statusBadge = '<span class="badge-status badge-pending">Pending</span>';
+              actionButton = `<button class="btn primary" onclick="acceptRequest('${user.user_id}', '${user.name}')">Accept</button>`;
+              break;
+            default:
+              actionButton = `<button class="btn primary" onclick="sendRequest('${user.user_id}', '${user.name}')">Add Friend</button>`;
+          }
+          
+          item.innerHTML = `
+            <div class="who">
+              <img src="${user.avatar}" alt="${user.name}" />
+              <div>
+                <div style="font-weight:700;">${user.name} ${statusBadge}</div>
+                <div class="meta">@${user.username} • ${user.location || 'Unknown location'}</div>
+              </div>
+            </div>
+            ${actionButton}
+          `;
+          searchResults.appendChild(item);
+        });
+      } catch (error) {
+        console.error('Error searching users:', error);
+        searchLoading.style.display = 'none';
+        searchResults.innerHTML = '<p style="color:#ef4444; padding:20px;">Search failed. Please try again.</p>';
+      }
+    }
+
+    // Send Friend Request
+    window.sendRequest = async function(userId, userName) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ friend_id: userId })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          alert(`Friend request sent to ${userName}!`);
+          searchDialog.close();
+          loadFriends();
+        } else {
+          alert(data.error || 'Failed to send friend request');
+        }
+      } catch (error) {
+        console.error('Error sending request:', error);
+        alert('Failed to send friend request');
+      }
+    };
+
+    // Accept Friend Request
+    window.acceptRequest = async function(userId, userName) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends/accept/${userId}`, {
+          method: 'POST'
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          alert(`You are now friends with ${userName}!`);
+          if (searchDialog.open) searchDialog.close();
+          loadFriends();
+          loadRequests();
+        } else {
+          alert(data.error || 'Failed to accept friend request');
+        }
+      } catch (error) {
+        console.error('Error accepting request:', error);
+        alert('Failed to accept friend request');
+      }
+    };
+
+    // Reject Friend Request
+    window.rejectRequest = async function(userId) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends/reject/${userId}`, {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          alert('Friend request declined');
+          loadRequests();
+        } else {
+          alert('Failed to decline friend request');
+        }
+      } catch (error) {
+        console.error('Error rejecting request:', error);
+        alert('Failed to decline friend request');
+      }
+    };
+
+    // Remove Friend
+    window.removeFriend = async function(userId, userName) {
+      if (!confirm(`Remove ${userName} from your friends?`)) return;
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends/remove/${userId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          alert(`${userName} has been removed from your friends`);
+          loadFriends();
+        } else {
+          alert('Failed to remove friend');
+        }
+      } catch (error) {
+        console.error('Error removing friend:', error);
+        alert('Failed to remove friend');
+      }
+    };
+
+    // Search Dialog Controls
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      searchDialog.showModal();
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+      searchEmpty.style.display = 'none';
+      searchInput.focus();
+    });
+
+    document.getElementById('searchCloseBtn').addEventListener('click', () => {
+      searchDialog.close();
+    });
+
+    document.getElementById('searchExecuteBtn').addEventListener('click', () => {
+      const query = searchInput.value.trim();
+      searchUsers(query);
+    });
+
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const query = searchInput.value.trim();
+        searchUsers(query);
+      }
+    });
+
+    // League Dialog Controls
+    const leagueDialog = document.getElementById('leagueDialog');
+    const leagueForm = document.getElementById('leagueForm');
+    
+    document.getElementById('createLeagueBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      
+      // Load friends for league invites
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends`);
+        const data = await response.json();
+        
+        const friendsListDiv = document.getElementById('leagueFriendsList');
+        
+        if (data.friends.length === 0) {
+          friendsListDiv.innerHTML = '<p class="meta">No friends to invite. Add friends first!</p>';
+        } else {
+          friendsListDiv.innerHTML = data.friends.map(friend => `
+            <label class="inline">
+              <input type="checkbox" name="invites" value="${friend.user_id}" /> 
+              ${friend.name} (@${friend.username})
+            </label>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading friends for league:', error);
+      }
+      
+      leagueDialog.showModal();
+    });
+
+    document.getElementById('leagueCancel').addEventListener('click', () => {
+      leagueDialog.close();
+    });
+
+    // League Management (Local Storage)
+    const KEY = 'dd_leagues_v2';
+
+    function loadLeagues() {
+      try {
+        return JSON.parse(localStorage.getItem(KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveLeagues(leagues) {
+      localStorage.setItem(KEY, JSON.stringify(leagues));
+    }
+
+    function renderLeagues() {
+      const leagues = loadLeagues();
     const list = document.getElementById('league-list');
     const emptyMsg = document.getElementById('league-empty');
 
-    function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
-    function save(data){ localStorage.setItem(KEY, JSON.stringify(data)); }
-
-    function render(){
-      const leagues = load();
       list.innerHTML = '';
-      if(!leagues.length){ emptyMsg.style.display = 'block'; return; }
+      
+      if (!leagues.length) {
+        emptyMsg.style.display = 'block';
+        return;
+      }
+      
       emptyMsg.style.display = 'none';
 
       leagues.forEach((lg, i) => {
-        const invitedNames = lg.invites.map(id => (FRIENDS.find(f=>f.id===id)?.name || id)).join(', ') || 'No invites';
         const card = document.createElement('div');
         card.className = 'item';
         card.innerHTML = `
           <div>
             <div style="font-weight:700;">${lg.name}</div>
             <div class="meta">
-              Duration: ${lg.duration} week${lg.duration>1?'s':''} • Size: ${lg.size} • Invited: ${invitedNames}
+              Duration: ${lg.duration} week${lg.duration>1?'s':''} • 
+              Size: ${lg.size} • 
+              Invited: ${lg.inviteCount || 0} friends
             </div>
           </div>
           <div class="row-actions">
             <a class="btn" href="leaderboards.html">View</a>
-            <button class="btn" data-del="${i}">Delete</button>
+            <button class="btn" onclick="deleteLeague(${i})">Delete</button>
           </div>
         `;
         list.appendChild(card);
       });
     }
 
-    function open(){ dialog?.showModal?.(); }
-    function close(){ dialog?.close?.(); }
-
-    openBtn?.addEventListener('click', (e)=>{ e.preventDefault(); open(); });
-    cancelBtn?.addEventListener('click', (e)=>{ e.preventDefault(); close(); });
-
-    form?.addEventListener('submit', (e)=>{
+    leagueForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
       const name = document.getElementById('leagueName').value.trim();
       const duration = Number(document.getElementById('leagueDuration').value);
       const size = Number(document.getElementById('leagueSize').value);
+      const invites = Array.from(leagueForm.querySelectorAll('input[name="invites"]:checked'))
+        .map(cb => cb.value);
 
-      // collect checked friend IDs (invites)
-      const invites = Array.from(form.querySelectorAll('input[name="invites"]:checked'))
-        .map(cb => cb.value)
-        // enforce “friends only” (defensive)
-        .filter(id => FRIENDS.some(f => f.id === id));
-
-      // ---- Validation ----
       const errors = [];
       if (!name) errors.push('League name is required.');
       if (!(duration === 1 || duration === 2)) errors.push('Duration must be 1 or 2 weeks.');
@@ -208,36 +515,35 @@
         return;
       }
 
-      // Save locally
-      const leagues = load();
+      const leagues = loadLeagues();
       leagues.push({
         name,
         duration,
         size,
-        invites,          // friend IDs only
+        invites,
+        inviteCount: invites.length,
         createdAt: Date.now()
       });
-      save(leagues);
+      saveLeagues(leagues);
 
-      form.reset();
-      close();
-      render();
+      leagueForm.reset();
+      leagueDialog.close();
+      renderLeagues();
     });
 
-    list?.addEventListener('click', (e)=>{
-      const btn = e.target.closest('button[data-del]');
-      if(!btn) return;
-      const idx = Number(btn.getAttribute('data-del'));
-      const leagues = load();
+    window.deleteLeague = function(idx) {
+      if (!confirm('Delete this league?')) return;
+      const leagues = loadLeagues();
       leagues.splice(idx, 1);
-      save(leagues);
-      render();
-    });
+      saveLeagues(leagues);
+      renderLeagues();
+    };
 
-    // init
-    render();
+    // Initialize
+    loadFriends();
+    loadRequests();
+    renderLeagues();
   })();
   </script>
-
 </body>
 </html>

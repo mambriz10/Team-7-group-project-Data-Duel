@@ -22,15 +22,24 @@
       <h1>Stats</h1>
       <p>Your key metrics.</p>
 
-      <div class="grid" role="list">
-        <div class="tile" role="listitem"><div class="k">Average Speed</div><div class="v">25</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Max Speed</div><div class="v">50</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Distance</div><div class="v">1000</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Moving Time</div><div class="v">1000</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Cadence</div><div class="v">25</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Heartrate</div><div class="v">100</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Elapsed Time</div><div class="v">120</div></div>
-        <div class="tile" role="listitem"><div class="k">Average Total Elevation</div><div class="v">20</div></div>
+      <div id="loading" style="text-align:center; padding:20px;">
+        <p>Loading stats...</p>
+      </div>
+
+      <div id="statsContent" style="display:none;">
+        <div class="grid" role="list">
+          <div class="tile" role="listitem"><div class="k">Total Workouts</div><div class="v" id="totalWorkouts">0</div></div>
+          <div class="tile" role="listitem"><div class="k">Total Distance</div><div class="v" id="totalDistance">0 km</div></div>
+          <div class="tile" role="listitem"><div class="k">Average Pace</div><div class="v" id="avgPace">0 min/km</div></div>
+          <div class="tile" role="listitem"><div class="k">Current Streak</div><div class="v" id="streak">0 days</div></div>
+          <div class="tile" role="listitem"><div class="k">Total Score</div><div class="v" id="score">0</div></div>
+          <div class="tile" role="listitem"><div class="k">Improvement Score</div><div class="v" id="improvement">0</div></div>
+        </div>
+      </div>
+
+      <div id="error" style="display:none; padding:20px; text-align:center;">
+        <p style="color:#ef4444;">Could not load stats. Please sync your activities first.</p>
+        <a class="btn primary" href="index.html">Go to Home</a>
       </div>
 
       <div style="margin-top:16px;">
@@ -49,6 +58,79 @@
     </div>
   </nav>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="api.js"></script>
   <script src="script.js"></script>
+  <script type = "module">
+    import { API_URL } from './config.js';
+    
+    // async function loadStats() {
+    //   document.getElementById('loading').style.display = 'block';
+    //   document.getElementById('statsContent').style.display = 'none';
+      
+    //   //const stats = await fetchActivities();
+    //   console.log(stats)
+    //   if (!stats) {
+    //       document.getElementById('loading').style.display = 'none';
+    //       document.getElementById('error').style.display = 'block';
+    //       return;
+    //   }
+
+    //   document.getElementById('totalWorkouts').textContent = stats.totalWorkouts;
+    //   document.getElementById('totalDistance').textContent = `${stats.totalDistance} km`;
+    //   document.getElementById('avgPace').textContent = `${stats.avgPace} min/km`;
+      
+    //   // You can also update streak, score, improvement here if you compute them
+      
+    //   document.getElementById('loading').style.display = 'none';
+    //   document.getElementById('statsContent').style.display = 'block';
+    // }
+
+    import { db } from "/strava_user_frontend.js";
+
+    async function loadStats_new() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('statsContent').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
+      
+      
+      const { data: { session } } = await db.auth.getSession();
+      
+
+      const response = await fetch(`${API_URL}/person/get-activities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+                    access_token: session.access_token
+                })
+      });
+      
+      const stats = await response.json();
+      console.log(stats);
+      
+      if (!stats) {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('error').style.display = 'block';
+          return;
+      }
+
+      // Access snake_case keys returned from backend
+      document.getElementById('totalWorkouts').textContent = stats.total_workouts;
+      document.getElementById('totalDistance').textContent = `${(stats.total_distance / 1000).toFixed(2)} km`; // convert meters to km if needed
+      document.getElementById('avgPace').textContent = `${(stats.average_speed).toFixed(2)} min/km`; // or compute pace from speed if needed
+
+      // Optionally update streak, badges, etc.
+      document.getElementById('streak').textContent = stats.streak;
+      // badges could be handled separately if needed
+      // e.g. stats.badges.distance, stats.badges.max_speed, etc.
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('statsContent').style.display = 'block';
+    }
+
+    loadStats_new();
+  
+
+  </script>
 </body>
 </html>

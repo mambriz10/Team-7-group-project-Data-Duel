@@ -1,0 +1,305 @@
+
+    <!-- ======================= social.html ======================= -->
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Social – DataDuels</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        .list { width: min(720px, 92%); margin: 0 auto; text-align:left; }
+        .item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid #e5e7eb; }
+        .item:last-child { border-bottom:none; }
+        .who { display:flex; align-items:center; gap:12px; }
+        .who img { width:40px; height:40px; border-radius:50%; border:1px solid #e5e7eb; }
+        .meta { color:#4113ae; font-size:12px; }
+        .toolbar { display:flex; gap:8px; justify-content:center; margin-bottom:12px; }
+    </style>
+    </head>
+
+    <body>
+    <main class="page">
+        <section class="card list" aria-label="Social">
+        <h1>Social</h1>
+        <p>Friends & Leagues</p>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <a class="btn" href="#" aria-disabled="true" onclick="return false;">Find Friends</a>
+            <a id="createLeagueBtn" class="btn primary" href="#">Create League</a>
+        </div>
+
+        <!-- ====================== LEAGUES ====================== -->
+        <h2 class="section-title">Your Leagues</h2>
+        <p class="meta" id="league-empty">No leagues yet. Create one to get started.</p>
+        <div id="league-list"></div>
+
+        <!-- Dialog -->
+        <dialog id="leagueDialog" aria-label="Create League">
+            <form method="dialog" id="leagueForm" class="form" style="padding:16px;">
+            <h3 style="margin:0 0 8px;">Create League</h3>
+
+            <div>
+                <label for="leagueName">League name</label>
+                <input id="leagueName" name="name" required placeholder="e.g., Fall 5K Showdown" />
+            </div>
+
+            <div>
+                <label for="leagueDuration">Duration</label>
+                <select id="leagueDuration" name="duration" required>
+                <option value="1">1 week</option>
+                <option value="2" selected>2 weeks</option>
+                </select>
+                <div class="hint meta">Must be 1–2 weeks.</div>
+            </div>
+
+            <div>
+                <label for="leagueSize">League size</label>
+                <input id="leagueSize" name="size" type="number" min="4" max="12" value="6" required />
+                <div class="hint meta">Minimum 4, maximum 12 members (including you).</div>
+            </div>
+
+            <!-- Dynamic Friends -->
+            <fieldset style="border:0; padding:0; margin:0;">
+                <legend style="font-weight:600; margin-bottom:6px;">Invite members (friends only)</legend>
+                <div class="hint meta" style="margin-bottom:6px;">Choose from your friends list.</div>
+
+                <div id="invite-grid" class="invite-grid" style="display:grid; gap:8px;">
+                <!-- Loaded via JS -->
+                </div>
+            </fieldset>
+
+            <div class="row-actions" style="justify-content:flex-end; margin-top:8px;">
+                <button type="button" id="leagueCancel" class="btn">Cancel</button>
+                <button type="submit" class="btn primary">Create</button>
+            </div>
+            </form>
+        </dialog>
+
+        <!-- ====================== FRIENDS ====================== -->
+        <h2 style="font-size:16px; margin:8px 0 4px;">Your Friends</h2>
+        <div id="friends-list">
+            <!-- Dynamic -->
+        </div>
+
+        <!-- ====================== REQUESTS ====================== -->
+        <h2 style="font-size:16px; margin:16px 0 4px;">Requests</h2>
+        <div id="requests-list" class="meta">
+            <!-- Dynamic -->
+        </div>
+
+        </section>
+    </main>
+
+    <!-- Bottom tabs -->
+    <nav class="tabs" aria-label="Primary navigation">
+        <div class="row">
+        <a href="profile.html" aria-label="Profile"><div class="icon">👤</div><div>Profile</div></a>
+        <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
+        <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
+        <a href="social.html" aria-label="Social" class="active"><div class="icon">🫂</div><div>Social</div></a>
+        <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
+        </div>
+    </nav>
+
+  <!-- ====================== JS ====================== -->
+
+  
+<script src="script.js"></script>
+<script type = "module">
+    import { db } from "/strava_user_frontend.js";
+(async function() {
+    const leagueDialog = document.getElementById('leagueDialog');
+    const openLeagueBtn = document.getElementById('createLeagueBtn');
+    const cancelLeagueBtn = document.getElementById('leagueCancel');
+    const leagueForm = document.getElementById('leagueForm');
+    const leagueList = document.getElementById('league-list');
+    const leagueEmpty = document.getElementById('league-empty');
+    const friendsList = document.getElementById('friends-list');
+    const requestsList = document.getElementById('requests-list');
+    const inviteGrid = document.getElementById('invite-grid');
+
+    const LEAGUE_KEY = "dd_leagues_v3";
+
+    // -----------------------------
+    // 🔥 FETCH FRIENDS FROM BACKEND
+    // -----------------------------
+    let FRIENDS = [];
+    let REQUESTS = [];
+
+    
+    async function loadFriends() {
+        try {
+            
+            const { data: { session } } = await db.auth.getSession();
+
+            const res = await fetch("/friends/list", {  
+                body: JSON.stringify({
+                    access_token: session.access_token
+                })
+            });
+            const data = await res.json();
+            FRIENDS = data.friends || [];
+            REQUESTS = data.requests || [];
+
+            renderFriends();
+            renderRequests();
+            renderInviteList();
+
+            } catch (err) {
+            console.error("Error loading friends:", err);
+            friendsList.innerHTML = "<p class='meta'>Failed to load friends.</p>";
+            }
+    }
+
+  // -----------------------------
+  // 🟦 Render "Your Friends"
+  // -----------------------------
+  function renderFriends() {
+    if (!FRIENDS.length) {
+      friendsList.innerHTML = `<p class='meta'>No friends yet.</p>`;
+      return;
+    }
+
+    friendsList.innerHTML = FRIENDS.map(fr => `
+      <div class="item">
+        <div class="who">
+          <img src="https://api.dicebear.com/7.x/identicon/svg?seed=${fr.username}" />
+          <div>
+            <div style="font-weight:700;">${fr.username}</div>
+            <div class="meta">Friend</div>
+          </div>
+        </div>
+        <a class="btn" href="leaderboards.html">View on Leaderboard</a>
+      </div>
+    `).join("");
+  }
+
+  // -----------------------------
+  // 🟧 Render Friend Requests
+  // -----------------------------
+  function renderRequests() {
+    if (!REQUESTS.length) {
+      requestsList.innerHTML = `<p class="meta">No pending requests.</p>`;
+      return;
+    }
+
+    requestsList.innerHTML = REQUESTS.map(u => `
+      <div class="item">
+        <div class="who">
+          <img src="https://api.dicebear.com/7.x/identicon/svg?seed=${u.username}" />
+          <div><div style="font-weight:700;">${u.username}</div></div>
+        </div>
+        <div class="row-actions">
+          <button class="btn primary" onclick="acceptRequest('${u.id}')">Accept</button>
+          <button class="btn" onclick="denyRequest('${u.id}')">Deny</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // -----------------------------
+  // 🟪 Render Invite Checkboxes
+  // -----------------------------
+  function renderInviteList() {
+    inviteGrid.innerHTML = FRIENDS.map(fr => `
+      <label class="inline">
+        <input type="checkbox" name="invites" value="${fr.id}" /> ${fr.username}
+      </label>
+    `).join("");
+  }
+
+  // -----------------------------
+  // 📌 Local League Storage
+  // -----------------------------
+  function loadLeagues() {
+    try { return JSON.parse(localStorage.getItem(LEAGUE_KEY)) || [] }
+    catch { return [] }
+  }
+
+  function saveLeagues(data) {
+    localStorage.setItem(LEAGUE_KEY, JSON.stringify(data));
+  }
+
+  function renderLeagues() {
+    const leagues = loadLeagues();
+    leagueList.innerHTML = "";
+
+    if (!leagues.length) {
+      leagueEmpty.style.display = "block";
+      return;
+    }
+
+    leagueEmpty.style.display = "none";
+
+    leagues.forEach((lg, idx) => {
+      leagueList.innerHTML += `
+        <div class="item">
+          <div>
+            <div style="font-weight:700;">${lg.name}</div>
+            <div class="meta">
+              Duration: ${lg.duration} week${lg.duration>1?'s':''} • Size: ${lg.size} • Invited: ${lg.invites.length}
+            </div>
+          </div>
+          <div class="row-actions">
+            <a class="btn" href="leaderboards.html">View</a>
+            <button class="btn" onclick="deleteLeague(${idx})">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  window.deleteLeague = i => {
+    const leagues = loadLeagues();
+    leagues.splice(i, 1);
+    saveLeagues(leagues);
+    renderLeagues();
+  };
+
+  // -----------------------------
+  // ▶️ Create League
+  // -----------------------------
+  leagueForm.addEventListener("submit", e => {
+    e.preventDefault();
+    
+    const name = leagueForm.name.value.trim();
+    const duration = Number(leagueForm.duration.value);
+    const size = Number(leagueForm.size.value);
+
+    const invites = [...leagueForm.querySelectorAll("input[name='invites']:checked")]
+      .map(cb => cb.value);
+
+    if (invites.length + 1 > size) {
+      alert("Invites + you cannot exceed league size");
+      return;
+    }
+
+    const leagues = loadLeagues();
+    leagues.push({ name, duration, size, invites, createdAt: Date.now() });
+    saveLeagues(leagues);
+
+    leagueForm.reset();
+    leagueDialog.close();
+    renderLeagues();
+  });
+
+  openLeagueBtn.addEventListener("click", e => { e.preventDefault(); leagueDialog.showModal() });
+  cancelLeagueBtn.addEventListener("click", () => leagueDialog.close());
+
+  // INITIAL LOAD
+  renderLeagues();
+  await loadFriends();
+})();
+</script>
+
+    
+
+    
+
+</body>
+</html>
+
+
+
