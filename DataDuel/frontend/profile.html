@@ -73,62 +73,21 @@
 
   <script type="module" src="api.js"></script>
   <script src="script.js"></script>
-<<<<<<< HEAD
-  <script>
-    // Load profile data when page loads
-    async function loadProfile() {
-      try {
-        const data = await api.getProfile();
-        console.log(data)
-        // Update UI with data
-        document.getElementById('userName').textContent = data.name;
-        document.getElementById('userInfo').textContent = `@${data.username} • ${data.location}`;
-        document.getElementById('avatar').src = data.avatar;
-        
-        document.getElementById('runs').textContent = data.stats.runs;
-        document.getElementById('distance').textContent = data.stats.distance_km + ' km';
-        document.getElementById('pace').textContent = data.stats.avg_pace.toFixed(1);
-        document.getElementById('score').textContent = data.stats.score;
-        
-        // Show content, hide loading
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('profileContent').style.display = 'block';
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'block';
-      }
-    }
-=======
   <script type = "module">
-    import { API_URL } from './config.js';
->>>>>>> 3ac51834c0adcf582111d844ee2fce13f7ca6764
-    
-    // Set up Connect Strava button
-    document.getElementById('connectStravaBtn')?.addEventListener('click', () => {
-      window.location.href = `${API_URL}/auth/strava`;
-    });
-    
     // Load profile data when page loads
     // async function loadProfile() {
     //   try {
     //     const data = await api.getProfile();
-    //     console.log('Profile data loaded:', data);
-        
+    //     console.log(data)
     //     // Update UI with data
     //     document.getElementById('userName').textContent = data.name;
-    //     document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
+    //     document.getElementById('userInfo').textContent = `@${data.username} • ${data.location}`;
     //     document.getElementById('avatar').src = data.avatar;
         
-    //     document.getElementById('runs').textContent = data.stats.runs || 0;
-    //     document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
-    //     document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
-    //     document.getElementById('score').textContent = data.stats.score || 0;
-        
-    //     // Show warning if no data
-    //     if (!data.stats.runs || data.stats.runs === 0) {
-    //       document.getElementById('noDataWarning').style.display = 'block';
-    //     }
+    //     document.getElementById('runs').textContent = data.stats.runs;
+    //     document.getElementById('distance').textContent = data.stats.distance_km + ' km';
+    //     document.getElementById('pace').textContent = data.stats.avg_pace.toFixed(1);
+    //     document.getElementById('score').textContent = data.stats.score;
         
     //     // Show content, hide loading
     //     document.getElementById('loading').style.display = 'none';
@@ -139,6 +98,42 @@
     //     document.getElementById('error').style.display = 'block';
     //   }
     // }
+    
+    // Set up Connect Strava button
+    document.getElementById('connectStravaBtn')?.addEventListener('click', () => {
+      window.location.href = `${API_URL}/auth/strava`;
+    });
+    
+    //Load profile data when page loads
+    async function loadProfile() {
+      try {
+        const data = await api.getProfile();
+        console.log('Profile data loaded:', data);
+        
+        // Update UI with data
+        document.getElementById('userName').textContent = data.name;
+        document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
+        document.getElementById('avatar').src = data.avatar;
+        
+        document.getElementById('runs').textContent = data.stats.runs || 0;
+        document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
+        document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
+        document.getElementById('score').textContent = data.stats.score || 0;
+        
+        // Show warning if no data
+        if (!data.stats.runs || data.stats.runs === 0) {
+          document.getElementById('noDataWarning').style.display = 'block';
+        }
+        
+        // Show content, hide loading
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('profileContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
+    }
     
     // // Load on page ready
     // if (document.readyState === 'loading') {

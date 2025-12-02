@@ -34,7 +34,7 @@ from supabase_stravaDB.strava_user import (
     get_friend_status as supabase_get_status,
     get_friend_profiles, search_users_by_name,
     # Legacy (deprecated)
-    get_friends_user, add_friend
+    get_friends_user, add_friend, fetch_user_leaderboards
 )
 
 
