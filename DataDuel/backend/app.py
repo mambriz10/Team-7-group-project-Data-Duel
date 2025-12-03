@@ -10,8 +10,9 @@ import sys
 # Add parent directory to path to import Person, Score, etc.
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from data_storage import DataStorage
-from friends_storage import FriendsStorage
+# DEPRECATED: JSON storage - now using Supabase only
+# from data_storage import DataStorage
+# from friends_storage import FriendsStorage
 from strava_parser import StravaParser
 from route_generator import SimpleRouteGenerator
 from Person import Person
@@ -34,7 +35,10 @@ from supabase_stravaDB.strava_user import (
     get_friend_status as supabase_get_status,
     get_friend_profiles, search_users_by_name,
     # Legacy (deprecated)
-    get_friends_user, add_friend, fetch_user_leaderboards
+    get_friends_user, add_friend, fetch_user_leaderboards,
+    # User profile operations (Supabase - replaces JSON storage)
+    get_user_by_athlete_id, save_user_profile, get_score_by_athlete_id, save_score,
+    get_activities_by_athlete_id, save_activities, get_all_users, get_all_scores
 )
 # Import db separately for test login lookup
 from supabase_stravaDB.strava_user import db as supabase_db
@@ -52,8 +56,8 @@ CORS(app, origins=[
     os.getenv("FRONTEND_URL", ""),                               # Custom frontend URL (if set)
 ])
 
-# Initialize data storage
-storage = DataStorage()
+# DEPRECATED: JSON storage - now using Supabase only
+# storage = DataStorage()
 # friends_storage = FriendsStorage()  # DEPRECATED: Now using Supabase for friends
 
 CREDENTIALS_FILE = "credentials.json"
@@ -272,22 +276,26 @@ def auth_callback():
     for key, value in user_data.items():
         print(f"      {key}: {value}")
     
-    print(f"\n[STORAGE] Saving user data to storage...")
-    print(f"   Calling storage.save_user({athlete_id}, user_data)")
+    print(f"\n[STORAGE] Saving user data to Supabase...")
+    print(f"   Calling save_user_profile({athlete_id}, user_data)")
     
     try:
-        storage.save_user(athlete_id, user_data)
-        print(f"[SUCCESS] User data saved successfully to DataStorage")
+        result, error = save_user_profile(athlete_id, user_data)
+        if error:
+            print(f"[ERROR] Failed to save user data to Supabase: {error}")
+            return jsonify({"error": "Failed to save user data", "details": error}), 500
+        
+        print(f"[SUCCESS] User data saved successfully to Supabase")
         
         # Verify the save by reading it back
-        print(f"\n[VERIFY] Reading user data back from storage to verify...")
-        verified_data = storage.get_user(athlete_id)
+        print(f"\n[VERIFY] Reading user data back from Supabase to verify...")
+        verified_data, verify_error = get_user_by_athlete_id(athlete_id)
         if verified_data:
-            print(f"[SUCCESS] Verification successful - user data found in storage")
+            print(f"[SUCCESS] Verification successful - user data found in Supabase")
             print(f"   Verified keys: {list(verified_data.keys())}")
             print(f"   Verified name: {verified_data.get('name')}")
         else:
-            print(f"[WARNING] Could not verify user data - not found in storage!")
+            print(f"[WARNING] Could not verify user data - not found in Supabase: {verify_error}")
     except Exception as e:
         print(f"[ERROR] Failed to save user data: {str(e)}")
         import traceback
@@ -303,16 +311,17 @@ def auth_callback():
 def get_valid_token():
     """
     Load and refresh the access token if expired.
-    Uses Supabase in production, falls back to file storage for local dev.
+    Uses Supabase as primary source, with minimal file fallback only for local dev.
     
     Strategy:
-    1. Try Supabase first (if USE_SUPABASE_STORAGE=true and athlete_id available)
-    2. Fall back to file storage (local dev or if Supabase fails)
+    1. Try Supabase first (primary source)
+    2. Fall back to file storage ONLY if Supabase completely unavailable (local dev)
     """
     # Check if we should use Supabase (default: true for production)
     use_supabase = os.getenv("USE_SUPABASE_STORAGE", "true").lower() == "true"
     
     # Get athlete_id from file (if exists) to look up in Supabase
+    # This is only needed for local dev when tokens.json might have athlete_id
     FILE_NAME = "tokens.json"
     athlete_id = None
     
@@ -324,28 +333,57 @@ def get_valid_token():
         except:
             pass
     
-    # Try Supabase first (production)
-    if use_supabase and athlete_id:
-        tokens, error = get_strava_tokens(athlete_id)
-        if not error and tokens and tokens.get("access_token"):
-            # Check if expired
-            if time.time() > tokens.get("expires_at", 0):
-                print("[TOKEN] Access token expired — refreshing from Supabase...")
-                refreshed, refresh_error = refresh_strava_token(athlete_id, CLIENT_ID, CLIENT_SECRET)
-                if not refresh_error:
-                    tokens = refreshed
-                    print("[TOKEN] Token refreshed and saved to Supabase")
+    # Try Supabase first (primary source)
+    if use_supabase:
+        # If we have athlete_id, use it
+        if athlete_id:
+            tokens, error = get_strava_tokens(athlete_id)
+            if not error and tokens and tokens.get("access_token"):
+                # Check if expired
+                if time.time() > tokens.get("expires_at", 0):
+                    print("[TOKEN] Access token expired — refreshing from Supabase...")
+                    refreshed, refresh_error = refresh_strava_token(athlete_id, CLIENT_ID, CLIENT_SECRET)
+                    if not refresh_error:
+                        tokens = refreshed
+                        print("[TOKEN] Token refreshed and saved to Supabase")
+                        return tokens["access_token"], tokens.get("athlete_id")
+                    else:
+                        print(f"[TOKEN] Supabase refresh failed: {refresh_error}")
                 else:
-                    print(f"[TOKEN] Supabase refresh failed: {refresh_error}, falling back to file")
-                    use_supabase = False
-            else:
-                print("[TOKEN] Using valid token from Supabase")
-                return tokens["access_token"], tokens.get("athlete_id")
+                    print("[TOKEN] Using valid token from Supabase")
+                    return tokens["access_token"], tokens.get("athlete_id")
+        
+        # Try to find any user with tokens in Supabase (for test login scenarios)
+        # This is a fallback if athlete_id not in tokens.json
+        try:
+            result = supabase_db.table("user_strava").select(
+                "strava_athlete_id, strava_access_token, strava_refresh_token, strava_expires_at"
+            ).not_.is_("strava_access_token", "null").limit(1).execute()
+            
+            if result.data and len(result.data) > 0:
+                user_data = result.data[0]
+                found_athlete_id = user_data.get("strava_athlete_id")
+                expires_at = user_data.get("strava_expires_at")
+                
+                if found_athlete_id and expires_at:
+                    # Check if expired
+                    if time.time() > expires_at:
+                        print(f"[TOKEN] Found token in Supabase but expired, refreshing...")
+                        refreshed, refresh_error = refresh_strava_token(found_athlete_id, CLIENT_ID, CLIENT_SECRET)
+                        if not refresh_error:
+                            print("[TOKEN] Token refreshed from Supabase")
+                            return refreshed["access_token"], found_athlete_id
+                    else:
+                        print(f"[TOKEN] Using valid token from Supabase (found by query)")
+                        return user_data.get("strava_access_token"), found_athlete_id
+        except Exception as e:
+            print(f"[TOKEN] Supabase query failed: {e}")
     
-    # Fallback to file storage (local development or if Supabase unavailable)
+    # Fallback to file storage ONLY if Supabase completely unavailable (local dev)
     if not os.path.exists(FILE_NAME):
-        raise FileNotFoundError("tokens.json not found. Please authenticate first.")
-    
+        raise FileNotFoundError("No tokens found. Please authenticate first via OAuth or test login.")
+
+    print("[TOKEN] Falling back to file storage (local dev mode)")
     with open(FILE_NAME, "r") as f:
         tokens = json.load(f)
 
@@ -609,16 +647,57 @@ def list_friends_route():
 
 @app.route("/person/get-activities", methods=["POST"])
 def get_person_activities():
+    """
+    DEPRECATED: Use /api/profile instead for consistent format.
+    This endpoint is kept for backward compatibility but returns same format as /api/profile.
+    """
     payload = request.get_json()
-    
-    
-    access_token = payload["access_token"]
+    access_token = payload.get("access_token")
 
-    data = fetch_person_response(access_token)
-    if not data:
-        return jsonify({"error": "No activity data found"}), 404
+    if not access_token:
+        return jsonify({"error": "Missing access_token"}), 400
 
-    return jsonify(data), 200
+    # Get user data from Supabase using access_token
+    try:
+        user_data = fetch_person_response(access_token)
+        if not user_data:
+            return jsonify({"error": "No activity data found"}), 404
+        
+        # Convert to same format as /api/profile for consistency
+        total_distance_km = (user_data.get('total_distance') or 0) / 1000
+        total_time_min = (user_data.get('total_moving_time') or 0) / 60
+        avg_pace = total_time_min / total_distance_km if total_distance_km > 0 else 0
+        
+        # Get score data
+        athlete_id = user_data.get('strava_athlete_id')
+        score_data = None
+        if athlete_id:
+            score_data, _ = get_score_by_athlete_id(athlete_id)
+        
+        # Return standardized format matching /api/profile
+        return jsonify({
+            "name": user_data.get('name', user_data.get('username', 'Unknown')),
+            "username": user_data.get('username', 'unknown'),
+            "location": user_data.get('location', ''),
+            "avatar": user_data.get('avatar', 'https://api.dicebear.com/7.x/identicon/svg?seed=runner'),
+            "stats": {
+                "runs": user_data.get('total_workouts', 0),
+                "distance_km": round(total_distance_km, 1),
+                "avg_pace": round(avg_pace, 1),
+                "streak": user_data.get('streak', 0),
+                "score": score_data.get('score', 0) if score_data else 0
+            },
+            # Include additional data for backward compatibility
+            "total_workouts": user_data.get('total_workouts', 0),
+            "total_distance": user_data.get('total_distance', 0),
+            "average_speed": user_data.get('average_speed', 0),
+            "max_speed": user_data.get('max_speed', 0),
+            "badges": user_data.get('badges', {}),
+            "weekly_challenges": user_data.get('weekly_challenges', {})
+        }), 200
+    except Exception as e:
+        print(f"[ERROR] Failed to get activities: {str(e)}")
+        return jsonify({"error": "Failed to retrieve activity data", "details": str(e)}), 500
     
 # creating the leaderboards;
 @app.route("/leaderboard/create", methods=["POST"])
@@ -705,10 +784,10 @@ def sync_data():
         print(f"   Activity types: {set(a.get('type') for a in activities)}")
     
     # Get user data
-    print(f"\n[STORAGE] Loading user data from storage...")
-    user_data = storage.get_user(athlete_id)
+    print(f"\n[STORAGE] Loading user data from Supabase...")
+    user_data, error = get_user_by_athlete_id(athlete_id)
     if not user_data:
-        print(f"[ERROR] User not found in storage (ID: {athlete_id})")
+        print(f"[ERROR] User not found in Supabase (ID: {athlete_id}): {error}")
         return jsonify({"error": "User not found. Please authenticate first."}), 404
     
     print(f"[SUCCESS] User data loaded:")
@@ -786,39 +865,57 @@ def sync_data():
     print(f"[SUCCESS] Score calculated: {person.score.score}")
     print(f"   Improvement: {person.score.improvement:.2f}")
     
-    # Save activities
-    print(f"\n[STORAGE] Saving data to storage...")
-    print(f"   Saving {len(activities)} activities...")
-    storage.save_activities(athlete_id, activities)
-    print(f"[SUCCESS] Activities saved")
+    # Save activities (placeholder - activities are processed on-the-fly)
+    print(f"\n[STORAGE] Processing activities...")
+    print(f"   Processed {len(activities)} activities")
+    save_activities(athlete_id, activities)  # Placeholder function
+    print(f"[SUCCESS] Activities processed")
     
-    # Update user data with metrics
-    print(f"   Updating user data with metrics...")
-    user_data.update({
+    # Update user data with metrics in Supabase
+    print(f"   Updating user data with metrics in Supabase...")
+    updated_user_data = {
         'total_workouts': person.total_workouts,
         'total_distance': person.total_distance,
         'total_moving_time': person.total_moving_time,
         'average_speed': person.average_speed,
         'max_speed': person.max_speed,
-        'streak': person.streak
-    })
-    storage.save_user(athlete_id, user_data)
-    print(f"[SUCCESS] User data updated")
+        'streak': person.streak,
+        'badges': {
+            "moving_time": person.badges.moving_time,
+            "distance": person.badges.distance,
+            "max_speed": person.badges.max_speed
+        },
+        'weekly_challenges': {
+            "first_challenge": person.weekly_challenges.first_challenge,
+            "second_challenge": person.weekly_challenges.second_challenge,
+            "third_challenge": person.weekly_challenges.third_challenge
+        }
+    }
+    # Merge with existing user data
+    if user_data:
+        updated_user_data.update(user_data)
+    
+    result, error = save_user_profile(athlete_id, updated_user_data)
+    if error:
+        print(f"[WARNING] Failed to update user data: {error}")
+    else:
+        print(f"[SUCCESS] User data updated in Supabase")
     
     # Save score data
-    print(f"   Saving score data...")
+    print(f"   Saving score data to Supabase...")
     score_data = {
         'user_id': athlete_id,
         'username': person.display_name,
         'score': person.score.score,
         'improvement': person.score.improvement,
-        'total_workouts': person.total_workouts,
         'badge_points': badge_points,
-        'challenge_points': challenge_points,
-        'streak': person.streak
+        'challenge_points': challenge_points
     }
-    storage.save_score(athlete_id, score_data)
-    print(f"[SUCCESS] Score data saved")
+    result, error = save_score(athlete_id, score_data)
+    if error:
+        print(f"[WARNING] Failed to save score data: {error}")
+    else:
+        print(f"[SUCCESS] Score data saved to Supabase")
     
     print(f"\n[RESPONSE] Preparing response...")
     response_data = {
@@ -875,10 +972,10 @@ def get_profile():
         print(f"[ERROR] Not authenticated: {str(e)}")
         return jsonify({"error": "Not authenticated"}), 401
     
-    print(f"\n[STORAGE] Loading user data from storage...")
-    user_data = storage.get_user(athlete_id)
+    print(f"\n[STORAGE] Loading user data from Supabase...")
+    user_data, error = get_user_by_athlete_id(athlete_id)
     if not user_data:
-        print(f"[ERROR] User not found in storage (ID: {athlete_id})")
+        print(f"[ERROR] User not found in Supabase (ID: {athlete_id}): {error}")
         return jsonify({"error": "User not found"}), 404
     
     print(f"[SUCCESS] User data loaded:")
@@ -889,19 +986,19 @@ def get_profile():
     print(f"   Total distance: {user_data.get('total_distance', 'NOT SET')}")
     print(f"   Streak: {user_data.get('streak', 'NOT SET')}")
     
-    print(f"\n[STORAGE] Loading score data from storage...")
-    score_data = storage.get_score(athlete_id)
+    print(f"\n[STORAGE] Loading score data from Supabase...")
+    score_data, score_error = get_score_by_athlete_id(athlete_id)
     if score_data:
         print(f"[SUCCESS] Score data loaded:")
         print(f"   Score: {score_data.get('score')}")
         print(f"   Improvement: {score_data.get('improvement')}")
     else:
-        print(f"[WARNING] No score data found for user {athlete_id}")
+        print(f"[WARNING] No score data found for user {athlete_id}: {score_error}")
     
     # Calculate pace
     print(f"\n[CALC] Calculating metrics...")
-    total_distance_km = user_data.get('total_distance', 0) / 1000
-    total_time_min = user_data.get('total_moving_time', 0) / 60
+    total_distance_km = (user_data.get('total_distance') or 0) / 1000
+    total_time_min = (user_data.get('total_moving_time') or 0) / 60
     avg_pace = total_time_min / total_distance_km if total_distance_km > 0 else 0
     
     print(f"   Total distance: {total_distance_km:.2f} km")
@@ -930,14 +1027,23 @@ def get_profile():
 
 @app.route("/api/leaderboard")
 def get_leaderboard():
-    """Get leaderboard data"""
-    all_scores = storage.get_all_scores()
-    all_users = storage.get_all_users()
+    """Get leaderboard data from Supabase"""
+    print(f"\n[LEADERBOARD] Loading leaderboard from Supabase...")
+    
+    all_scores, scores_error = get_all_scores()
+    if scores_error:
+        print(f"[ERROR] Failed to get scores: {scores_error}")
+        return jsonify({"error": "Failed to load leaderboard"}), 500
+    
+    all_users, users_error = get_all_users()
+    if users_error:
+        print(f"[WARNING] Failed to get users: {users_error}")
+        all_users = {}
     
     # Build leaderboard entries
     leaderboard = []
-    for user_id, score_data in all_scores.items():
-        user_data = all_users.get(user_id, {})
+    for user_id, score_data in (all_scores or {}).items():
+        user_data = (all_users or {}).get(user_id, {})
         
         leaderboard.append({
             "user_id": user_id,
@@ -955,6 +1061,8 @@ def get_leaderboard():
     for i, entry in enumerate(leaderboard):
         entry['rank'] = i + 1
     
+    print(f"[SUCCESS] Leaderboard loaded: {len(leaderboard)} users")
+    
     return jsonify({
         "leaderboard": leaderboard,
         "total_users": len(leaderboard),
@@ -969,19 +1077,25 @@ def get_friends():
     except Exception as e:
         return jsonify({"error": "Not authenticated"}), 401
     
-    # For MVP, return sample friends data
-    # In future, this would query actual friendships
-    all_users = storage.get_all_users()
-    friends = []
+    # Get all users from Supabase
+    all_users, users_error = get_all_users()
+    if users_error:
+        print(f"[ERROR] Failed to get users: {users_error}")
+        return jsonify({"error": "Failed to load friends"}), 500
     
-    for user_id, user_data in all_users.items():
+    friends = []
+    for user_id, user_data in (all_users or {}).items():
         if user_id != athlete_id:  # Don't include self
-            score_data = storage.get_score(user_id)
+            score_data, _ = get_score_by_athlete_id(user_id)
+            total_workouts = user_data.get('total_workouts', 1)
+            total_distance = user_data.get('total_distance', 0)
+            avg_distance = (total_distance / total_workouts / 1000) if total_workouts > 0 else 0
+            
             friends.append({
                 "user_id": user_id,
                 "username": user_data.get('username', 'Unknown'),
-                "avatar": user_data.get('avatar', 'https://api.dicebear.com/7.x/identicon/svg?seed=' + user_id),
-                "last_run_distance": round(user_data.get('total_distance', 0) / user_data.get('total_workouts', 1) / 1000, 1),
+                "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
+                "last_run_distance": round(avg_distance, 1),
                 "improvement": round(score_data.get('improvement', 0), 1) if score_data else 0
             })
     
@@ -1120,14 +1234,16 @@ def search_users():
         # Check friendship status
         status, _ = supabase_get_status(athlete_id, user_id)
         
-        # Get additional data from storage for avatar, location, etc.
-        user_data = storage.get_user(user_id) or {}
+        # Get additional data from Supabase for avatar, location, etc.
+        user_data, _ = get_user_by_athlete_id(user_id)
+        if not user_data:
+            user_data = {}
         
         results.append({
             "user_id": user_id,
-            "name": user_data.get('name', 'Unknown'),
+            "name": user_data.get('name', user.get('username', 'Unknown')),
             "username": user.get('username', 'unknown'),
-            "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}'),
+            "avatar": user_data.get('avatar', user.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={user_id}')),
             "location": user_data.get('location', ''),
             "friendship_status": status
         })
@@ -1250,12 +1366,22 @@ def get_friends_list_endpoint():
         print(f"   [ERROR] Failed to get friends: {error}")
         return jsonify({"error": error}), 500
     
-    all_users = storage.get_all_users()
+    # Get all users from Supabase
+    all_users, users_error = get_all_users()
+    if users_error:
+        print(f"   [WARNING] Failed to get all users: {users_error}")
+        all_users = {}
     
     friends = []
     for friend_id in friend_ids:
-        user_data = all_users.get(friend_id, {})
-        score_data = storage.get_score(friend_id)
+        user_data = (all_users or {}).get(friend_id, {})
+        if not user_data:
+            # Try to get user directly if not in all_users
+            user_data, _ = get_user_by_athlete_id(friend_id)
+            if not user_data:
+                user_data = {}
+        
+        score_data, _ = get_score_by_athlete_id(friend_id)
         
         # Calculate average run distance
         total_workouts = user_data.get('total_workouts', 0)
@@ -1296,12 +1422,22 @@ def get_friend_requests_endpoint():
         print(f"   [ERROR] Failed to get pending requests: {error}")
         return jsonify({"error": error}), 500
     
-    all_users = storage.get_all_users()
+    # Get all users from Supabase
+    all_users, users_error = get_all_users()
+    if users_error:
+        print(f"   [WARNING] Failed to get all users: {users_error}")
+        all_users = {}
     
     requests = []
     for req in pending_requests:
         user_id = req.get('from_user_id')
-        user_data = all_users.get(user_id, {})
+        user_data = (all_users or {}).get(user_id, {})
+        if not user_data:
+            # Try to get user directly if not in all_users
+            user_data, _ = get_user_by_athlete_id(user_id)
+            if not user_data:
+                user_data = {}
+        
         requests.append({
             "user_id": user_id,
             "name": user_data.get('name', 'Unknown'),
@@ -1333,12 +1469,22 @@ def get_sent_requests_endpoint():
         print(f"   [ERROR] Failed to get sent requests: {error}")
         return jsonify({"error": error}), 500
     
-    all_users = storage.get_all_users()
+    # Get all users from Supabase
+    all_users, users_error = get_all_users()
+    if users_error:
+        print(f"   [WARNING] Failed to get all users: {users_error}")
+        all_users = {}
     
     sent = []
     for req in sent_requests:
         user_id = req.get('to_user_id')
-        user_data = all_users.get(user_id, {})
+        user_data = (all_users or {}).get(user_id, {})
+        if not user_data:
+            # Try to get user directly if not in all_users
+            user_data, _ = get_user_by_athlete_id(user_id)
+            if not user_data:
+                user_data = {}
+        
         sent.append({
             "user_id": user_id,
             "name": user_data.get('name', 'Unknown'),

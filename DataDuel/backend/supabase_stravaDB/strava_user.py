@@ -190,35 +190,52 @@ def insert_user_profile( user_id, username, email):
 # STRAVA TOKEN STORAGE - SUPABASE (FOR PRODUCTION/RENDER)
 # =============================================================================
 
-def save_strava_tokens(athlete_id: str, access_token: str, refresh_token: str, expires_at: int):
+def save_strava_tokens(athlete_id: str, access_token: str, refresh_token: str, expires_at: int, user_id: str = None):
     """
     Save Strava OAuth tokens to Supabase user_strava table.
-    Uses athlete_id to find the user record.
+    Uses athlete_id to find the user record, or user_id if provided.
     
     Args:
         athlete_id: Strava athlete ID (string)
         access_token: Strava access token
         refresh_token: Strava refresh token
         expires_at: Unix timestamp when token expires
+        user_id: Optional Supabase user_id to link tokens (for better linking)
     
     Returns:
         (success_data, error_message)
     """
     try:
         print(f"[TOKEN STORAGE] Saving tokens for athlete_id: {athlete_id}")
+        if user_id:
+            print(f"[TOKEN STORAGE] Also linking to user_id: {user_id}")
         
-        # Find user by strava_athlete_id or create/update record
-        # Note: This assumes athlete_id maps to a user in user_strava
-        # If not, we need to link athlete_id to user_id during OAuth
-        
-        response = db.table("user_strava").update({
+        token_data = {
             "strava_access_token": access_token,
             "strava_refresh_token": refresh_token,
             "strava_expires_at": expires_at,
             "strava_athlete_id": str(athlete_id)
-        }).eq("strava_athlete_id", str(athlete_id)).execute()
+        }
         
-        # If no rows updated, try to insert (user might not exist yet)
+        # Strategy 1: Try to update by athlete_id first
+        response = db.table("user_strava").update(token_data).eq("strava_athlete_id", str(athlete_id)).execute()
+        
+        # Strategy 2: If no rows updated and user_id provided, try updating by user_id
+        if not response.data and user_id:
+            print(f"[TOKEN STORAGE] No record found by athlete_id, trying user_id...")
+            response = db.table("user_strava").update(token_data).eq("user_id", user_id).execute()
+        
+        # Strategy 3: If still no rows updated, try to find user_id from athlete_id and update
+        if not response.data:
+            print(f"[TOKEN STORAGE] No record found, checking if user exists with this athlete_id...")
+            # Try to find existing user by athlete_id to get user_id
+            lookup = db.table("user_strava").select("user_id").eq("strava_athlete_id", str(athlete_id)).maybe_single().execute()
+            if lookup.data and lookup.data.get("user_id"):
+                found_user_id = lookup.data.get("user_id")
+                print(f"[TOKEN STORAGE] Found existing user_id: {found_user_id}, updating...")
+                response = db.table("user_strava").update(token_data).eq("user_id", found_user_id).execute()
+        
+        # If still no rows updated, user record doesn't exist yet
         if not response.data:
             print(f"[TOKEN STORAGE] No existing record, will be created during user save")
             # Return success - tokens will be saved when user record is created
@@ -819,6 +836,267 @@ def fetch_user_leaderboards(access_token):
     return {"owned": owned, "joined": joined}, None
 
 
+# =============================================================================
+# USER PROFILE OPERATIONS - SUPABASE (REPLACES JSON STORAGE)
+# =============================================================================
+
+def get_user_by_athlete_id(athlete_id: str):
+    """
+    Get user profile data by Strava athlete_id.
+    Replaces storage.get_user() from JSON storage.
+    
+    Returns:
+        (user_data_dict, error_message)
+    """
+    try:
+        print(f"[SUPABASE USER] Getting user by athlete_id: {athlete_id}")
+        
+        result = db.table("user_strava").select("*").eq("strava_athlete_id", str(athlete_id)).maybe_single().execute()
+        
+        if not result.data:
+            print(f"[SUPABASE USER] No user found for athlete_id: {athlete_id}")
+            return None, "User not found"
+        
+        user_data = result.data
+        print(f"[SUPABASE USER] User found: {user_data.get('username', 'unknown')}")
+        return user_data, None
+        
+    except Exception as e:
+        print(f"[SUPABASE USER] Error getting user: {str(e)}")
+        return None, str(e)
+
+
+def save_user_profile(athlete_id: str, user_data: dict):
+    """
+    Save or update user profile data by Strava athlete_id.
+    Replaces storage.save_user() from JSON storage.
+    
+    Args:
+        athlete_id: Strava athlete ID
+        user_data: Dictionary with user profile data
+    
+    Returns:
+        (success_data, error_message)
+    """
+    try:
+        print(f"[SUPABASE USER] Saving user profile for athlete_id: {athlete_id}")
+        
+        # Prepare update data - map JSON storage keys to Supabase columns
+        update_data = {
+            "strava_athlete_id": str(athlete_id),
+            "name": user_data.get("name"),
+            "display_name": user_data.get("display_name"),
+            "username": user_data.get("username"),
+            "location": user_data.get("location"),
+            "avatar": user_data.get("avatar"),
+            "total_workouts": user_data.get("total_workouts"),
+            "total_distance": user_data.get("total_distance"),
+            "total_moving_time": user_data.get("total_moving_time"),
+            "average_speed": user_data.get("average_speed"),
+            "max_speed": user_data.get("max_speed"),
+            "streak": user_data.get("streak"),
+            "badges": user_data.get("badges"),
+            "weekly_challenges": user_data.get("weekly_challenges"),
+            "updated_at": "now()"
+        }
+        
+        # Remove None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        # Try to update by athlete_id
+        response = db.table("user_strava").update(update_data).eq("strava_athlete_id", str(athlete_id)).execute()
+        
+        # If no rows updated, try to insert (user might not exist yet)
+        if not response.data:
+            print(f"[SUPABASE USER] No existing record, inserting new user...")
+            # Add user_id if we can find it, otherwise it will be set later
+            response = db.table("user_strava").insert(update_data).execute()
+        
+        print(f"[SUPABASE USER] Success: User profile saved")
+        return {"success": True}, None
+        
+    except Exception as e:
+        print(f"[SUPABASE USER] Error saving user profile: {str(e)}")
+        return None, str(e)
+
+
+def get_score_by_athlete_id(athlete_id: str):
+    """
+    Get score data by Strava athlete_id.
+    Replaces storage.get_score() from JSON storage.
+    
+    Returns:
+        (score_data_dict, error_message)
+    """
+    try:
+        print(f"[SUPABASE USER] Getting score for athlete_id: {athlete_id}")
+        
+        result = db.table("user_strava").select(
+            "score, improvement, badge_points, challenge_points, total_workouts, streak"
+        ).eq("strava_athlete_id", str(athlete_id)).maybe_single().execute()
+        
+        if not result.data:
+            print(f"[SUPABASE USER] No score data found for athlete_id: {athlete_id}")
+            return None, "Score data not found"
+        
+        score_data = {
+            "user_id": athlete_id,
+            "score": result.data.get("score", 0),
+            "improvement": result.data.get("improvement", 0),
+            "badge_points": result.data.get("badge_points", 0),
+            "challenge_points": result.data.get("challenge_points", 0),
+            "total_workouts": result.data.get("total_workouts", 0),
+            "streak": result.data.get("streak", 0)
+        }
+        
+        print(f"[SUPABASE USER] Score found: {score_data.get('score')}")
+        return score_data, None
+        
+    except Exception as e:
+        print(f"[SUPABASE USER] Error getting score: {str(e)}")
+        return None, str(e)
+
+
+def save_score(athlete_id: str, score_data: dict):
+    """
+    Save score data by Strava athlete_id.
+    Replaces storage.save_score() from JSON storage.
+    
+    Args:
+        athlete_id: Strava athlete ID
+        score_data: Dictionary with score data
+    
+    Returns:
+        (success_data, error_message)
+    """
+    try:
+        print(f"[SUPABASE USER] Saving score for athlete_id: {athlete_id}")
+        
+        update_data = {
+            "strava_athlete_id": str(athlete_id),
+            "score": score_data.get("score", 0),
+            "improvement": score_data.get("improvement", 0),
+            "badge_points": score_data.get("badge_points", 0),
+            "challenge_points": score_data.get("challenge_points", 0),
+            "updated_at": "now()"
+        }
+        
+        # Update by athlete_id
+        response = db.table("user_strava").update(update_data).eq("strava_athlete_id", str(athlete_id)).execute()
+        
+        if not response.data:
+            print(f"[SUPABASE USER] No existing record for score update, user profile must be created first")
+            return None, "User profile not found. Create user profile first."
+        
+        print(f"[SUPABASE USER] Success: Score saved")
+        return {"success": True}, None
+        
+    except Exception as e:
+        print(f"[SUPABASE USER] Error saving score: {str(e)}")
+        return None, str(e)
+
+
+def get_activities_by_athlete_id(athlete_id: str):
+    """
+    Get activities data by Strava athlete_id.
+    Note: Activities are typically stored as JSONB or in a separate table.
+    For now, this is a placeholder - activities might be fetched from Strava API directly.
+    
+    Returns:
+        (activities_list, error_message)
+    """
+    # TODO: Implement if activities are stored in Supabase
+    # For now, activities are fetched directly from Strava API
+    return [], None
+
+
+def save_activities(athlete_id: str, activities_data: list):
+    """
+    Save activities data by Strava athlete_id.
+    Note: Activities might be stored in a separate table or as JSONB.
+    For now, this is a placeholder.
+    
+    Returns:
+        (success_data, error_message)
+    """
+    # TODO: Implement if activities need to be stored in Supabase
+    # For now, activities are processed on-the-fly from Strava API
+    return {"success": True}, None
+
+
+def get_all_users():
+    """
+    Get all users from Supabase.
+    Replaces storage.get_all_users() from JSON storage.
+    
+    Returns:
+        (users_dict, error_message) where users_dict is {athlete_id: user_data}
+    """
+    try:
+        print(f"[SUPABASE USER] Getting all users...")
+        
+        result = db.table("user_strava").select("*").execute()
+        
+        if not result.data:
+            print(f"[SUPABASE USER] No users found")
+            return {}, None
+        
+        # Convert to dict keyed by athlete_id
+        users_dict = {}
+        for user in result.data:
+            athlete_id = user.get("strava_athlete_id")
+            if athlete_id:
+                users_dict[str(athlete_id)] = user
+        
+        print(f"[SUPABASE USER] Found {len(users_dict)} users")
+        return users_dict, None
+        
+    except Exception as e:
+        print(f"[SUPABASE USER] Error getting all users: {str(e)}")
+        return None, str(e)
+
+
+def get_all_scores():
+    """
+    Get all scores from Supabase.
+    Replaces storage.get_all_scores() from JSON storage.
+    
+    Returns:
+        (scores_dict, error_message) where scores_dict is {athlete_id: score_data}
+    """
+    try:
+        print(f"[SUPABASE USER] Getting all scores...")
+        
+        result = db.table("user_strava").select(
+            "strava_athlete_id, username, score, improvement, total_workouts, streak, badge_points, challenge_points"
+        ).execute()
+        
+        if not result.data:
+            print(f"[SUPABASE USER] No scores found")
+            return {}, None
+        
+        # Convert to dict keyed by athlete_id
+        scores_dict = {}
+        for user in result.data:
+            athlete_id = user.get("strava_athlete_id")
+            if athlete_id:
+                scores_dict[str(athlete_id)] = {
+                    "user_id": str(athlete_id),
+                    "username": user.get("username"),
+                    "score": user.get("score", 0),
+                    "improvement": user.get("improvement", 0),
+                    "total_workouts": user.get("total_workouts", 0),
+                    "streak": user.get("streak", 0),
+                    "badge_points": user.get("badge_points", 0),
+                    "challenge_points": user.get("challenge_points", 0)
+                }
+        
+        print(f"[SUPABASE USER] Found {len(scores_dict)} scores")
+        return scores_dict, None
+        
+    except Exception as e:
+        print(f"[SUPABASE USER] Error getting all scores: {str(e)}")
+        return None, str(e)
 
 
 # Load local credentials on import
