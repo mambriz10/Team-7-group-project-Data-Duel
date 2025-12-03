@@ -181,6 +181,7 @@
 
     import { db } from "/strava_user_frontend.js";
     async function loadProfile_new() {
+      try {
         const { data: { session } } = await db.auth.getSession();
         if (!session) {
             console.error("No active session found!");
