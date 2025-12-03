@@ -84,6 +84,7 @@ Complete friend request system with:
 - Bidirectional friendships
 - Status tracking (pending, friends, none)
 - Search users by name
+- Full Supabase integration (production-ready)
 
 ### Database Schema
 
@@ -328,54 +329,47 @@ class Score:
 
 **Calculation:** `Score.calculate(person)` (see Scoring System above)
 
-### Storage Schema
+### Storage Schema (Supabase)
 
-#### users.json
-```json
-{
-  "67126670": {
-    "id": "67126670",
-    "name": "Daniel Chavez",
-    "username": "daniel_runner",
-    "avatar": "https://...",
-    "total_workouts": 15,
-    "total_distance": 75000,
-    "total_moving_time": 18000,
-    "streak": 7,
-    "baseline_average_speed": 3.2
-  }
-}
+**All data stored in `user_strava` table:**
+
+```sql
+CREATE TABLE user_strava (
+    user_id UUID PRIMARY KEY,
+    strava_athlete_id TEXT UNIQUE,
+    username TEXT,
+    name TEXT,
+    display_name TEXT,
+    email TEXT,
+    location TEXT,
+    avatar TEXT,
+    total_workouts INTEGER,
+    total_distance NUMERIC,
+    total_moving_time BIGINT,
+    average_speed NUMERIC,
+    max_speed NUMERIC,
+    streak INTEGER,
+    score NUMERIC,
+    improvement NUMERIC,
+    badge_points INTEGER,
+    challenge_points INTEGER,
+    badges JSONB,
+    weekly_challenges JSONB,
+    strava_access_token TEXT,
+    strava_refresh_token TEXT,
+    strava_expires_at BIGINT,
+    updated_at TIMESTAMP
+);
 ```
 
-#### scores.json
-```json
-{
-  "67126670": {
-    "score": 250,
-    "improvement": 15.5,
-    "badge_points": 15,
-    "challenge_points": 10,
-    "streak": 7
-  }
-}
-```
+**Key Features:**
+- ✅ All user data in single table
+- ✅ Row-level security (RLS) enabled
+- ✅ Persistent across server restarts
+- ✅ Multi-user support
+- ✅ Indexed for fast lookups by `strava_athlete_id`
 
-#### activities.json
-```json
-{
-  "67126670": [
-    {
-      "id": 123456789,
-      "name": "Morning Run",
-      "distance": 5000,
-      "moving_time": 1800,
-      "average_speed": 2.78,
-      "type": "Run",
-      "start_date": "2025-11-20T07:00:00Z"
-    }
-  ]
-}
-```
+**Note:** Activities are fetched on-demand from Strava API, not stored in database (can be cached if needed).
 
 ---
 
@@ -396,7 +390,8 @@ class Score:
 | `/api/sync` | POST | Full sync: activities → calculate → store |
 | `/strava/activities` | GET | Get raw Strava activities |
 | `/person/update-activities` | POST | Update Supabase with activities |
-| `/person/get-activities` | POST | Fetch activities from Supabase |
+| `/person/get-activities` | POST | Fetch activities from Supabase (deprecated, use `/api/profile`) |
+| `/api/test-login` | POST | Test login with stored credentials (for testing) |
 
 ### User Data
 
@@ -437,8 +432,8 @@ All `/api/friends/*` endpoints
    → Receives: access_token, refresh_token, expires_at
 
 4. Backend stores tokens
-   → Saved in tokens.json
-   → Sets cookie: strava_token
+   → Saved in Supabase (user_strava table)
+   → Also saved to tokens.json (local dev fallback only)
 
 5. Frontend receives auth confirmation
    → Can now make authenticated requests
@@ -490,9 +485,9 @@ def get_valid_token():
    g. Challenge checking → Award challenges
    h. Streak calculation → Count consecutive days
    i. Score.calculate() → Compute improvement score
-   j. storage.save_user() → Save to users.json
-   k. storage.save_score() → Save to scores.json
-   l. storage.save_activities() → Save to activities.json
+   j. save_user_profile() → Save to Supabase user_strava table
+   k. save_score() → Save score to Supabase user_strava table
+   l. save_activities() → Process activities (stored in Supabase via user profile)
    m. insert_person_response() → Save to Supabase
    ↓
 4. Backend → Returns success + summary
@@ -504,9 +499,10 @@ def get_valid_token():
 7. Frontend → GET /api/leaderboard
    ↓
 8. Backend:
-   a. storage.get_all_scores() → Load all scores
-   b. Sort by improvement score (descending)
-   c. Add user names from users.json
+   a. get_all_scores() → Load all scores from Supabase
+   b. get_all_users() → Load all users from Supabase
+   c. Sort by improvement score (descending)
+   d. Format leaderboard entries
    ↓
 9. Backend → Returns ranked list
    ↓

@@ -19,7 +19,13 @@ This creates fair competition where a beginner improving their 5K time by 30 sec
 
 ---
 
-## 📋 Current Status: **MVP Complete & Demo-Ready**
+## 📋 Current Status: **Production-Ready & Fully Deployed**
+
+**Deployment Status:**
+- ✅ **Frontend:** Deployed on Cloudflare Pages
+- ✅ **Backend:** Deployed on Render.com
+- ✅ **Database:** Supabase PostgreSQL (fully migrated)
+- ✅ **Storage:** 100% Supabase (no JSON dependencies)
 
 ### ✅ Fully Implemented Features
 
@@ -34,14 +40,14 @@ This creates fair competition where a beginner improving their 5K time by 30 sec
 | **Badge System** | ✅ Working | Automatic badge awarding (moving time, distance, speed) |
 | **Challenge System** | ✅ Working | Weekly challenges (3+ runs, 15km+, 5-day streak) |
 | **Streak Tracking** | ✅ Working | Consecutive day calculation with proper validation |
-| **Data Storage** | ✅ Working | JSON-based storage (MVP; database ready for upgrade) |
+| **Data Storage** | ✅ Working | Supabase PostgreSQL (production-ready, persistent) |
 
 ### 🚧 Planned Enhancements
-- Database migration (PostgreSQL/SQLite)
-- Social features (friends, custom leagues)
+- Social features (custom leagues, groups)
 - Mobile optimization & PWA
 - Advanced route generation with LLM
 - Notification system
+- Real-time updates (WebSockets)
 
 ---
 
@@ -67,7 +73,7 @@ This creates fair competition where a beginner improving their 5K time by 30 sec
    │  /callback  │
    └─────────────┘
          │
-         │ Stores: tokens.json + data/users.json
+         │ Stores: Tokens + User Profile in Supabase
          ↓
    ✅ User Authenticated
 
@@ -109,8 +115,8 @@ This creates fair competition where a beginner improving their 5K time by 30 sec
                                    │
         ┌──────────────────┬───────┴──────┬──────────────────┐
         ↓                  ↓               ↓                  ↓
-  activities.json    users.json      scores.json      Frontend Display
-  (raw data)         (metrics)       (scores)         (success msg)
+  Supabase DB        Supabase DB      Supabase DB      Frontend Display
+  (activities)       (user profiles)  (scores)         (success msg)
 
 
 3. PROFILE DISPLAY
@@ -121,8 +127,9 @@ This creates fair competition where a beginner improving their 5K time by 30 sec
          ↑                                      │
          │                              ┌───────┴───────┐
          │                              │ Load from:    │
-         │                              │ • users.json  │
-         │                              │ • scores.json │
+         │                              │ • Supabase    │
+         │                              │   user_strava │
+         │                              │   table       │
          │                              └───────┬───────┘
          │                                      │
          │ JSON Response                        │ Calculate
@@ -227,52 +234,51 @@ class Person:
     weekly_challenges: challenges
 ```
 
-### Data Storage (JSON Files)
+### Data Storage (Supabase PostgreSQL)
 
-**users.json**
-```json
-{
-  "67126670": {
-    "id": "67126670",
-    "name": "Daniel Chavez",
-    "username": "daniel_runner",
-    "avatar": "https://...",
-    "total_workouts": 15,
-    "total_distance": 75000,
-    "total_moving_time": 18000,
-    "streak": 7
-  }
-}
+**user_strava Table**
+```sql
+CREATE TABLE user_strava (
+    user_id UUID PRIMARY KEY,
+    strava_athlete_id TEXT UNIQUE,
+    username TEXT,
+    name TEXT,
+    display_name TEXT,
+    email TEXT,
+    location TEXT,
+    avatar TEXT,
+    total_workouts INTEGER,
+    total_distance NUMERIC,
+    total_moving_time BIGINT,
+    average_speed NUMERIC,
+    max_speed NUMERIC,
+    streak INTEGER,
+    score NUMERIC,
+    improvement NUMERIC,
+    badge_points INTEGER,
+    challenge_points INTEGER,
+    badges JSONB,
+    weekly_challenges JSONB,
+    strava_access_token TEXT,
+    strava_refresh_token TEXT,
+    strava_expires_at BIGINT,
+    updated_at TIMESTAMP
+);
 ```
 
-**scores.json**
-```json
-{
-  "67126670": {
-    "score": 250,
-    "improvement": 15.5,
-    "badge_points": 15,
-    "challenge_points": 10,
-    "streak": 7
-  }
-}
-```
+**All data is stored in Supabase:**
+- ✅ User profiles and metrics
+- ✅ Activity statistics
+- ✅ Scores and improvements
+- ✅ OAuth tokens (persistent)
+- ✅ Friends and friend requests
+- ✅ Leaderboards
 
-**activities.json**
-```json
-{
-  "67126670": [
-    {
-      "id": 123456789,
-      "name": "Morning Run",
-      "distance": 5000,
-      "moving_time": 1800,
-      "average_speed": 2.78,
-      "type": "Run"
-    }
-  ]
-}
-```
+**Benefits:**
+- Persistent across server restarts
+- Multi-user support
+- Production-ready scalability
+- Row-level security (RLS)
 
 ---
 
@@ -282,21 +288,34 @@ class Person:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/auth/strava` | GET | Redirects to Strava OAuth |
-| `/auth/strava/callback` | GET | Handles OAuth callback, stores tokens |
+| `/auth/strava/callback` | GET | Handles OAuth callback, stores tokens in Supabase |
+| `/api/test-login` | POST | Test login with stored credentials (for testing) |
 | `/api/status` | GET | Check auth status |
 
 ### Data Sync
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/sync` | POST | Sync activities from Strava, calculate scores |
-| `/strava/activities` | GET | Get raw Strava activities |
+| `/api/sync` | POST/GET | Sync activities from Strava, calculate scores, save to Supabase |
+| `/strava/activities` | GET | Get raw Strava activities (grouped by weekday) |
 
 ### User Data
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/profile` | GET | Get user profile + stats |
-| `/api/leaderboard` | GET | Get sorted leaderboard |
-| `/api/friends` | GET | Get friends list |
+| `/api/profile` | GET | Get user profile + stats from Supabase |
+| `/person/get-activities` | POST | Get activity data (deprecated, use `/api/profile`) |
+| `/api/leaderboard` | GET | Get sorted leaderboard from Supabase |
+| `/api/friends` | GET | Get friends list from Supabase |
+
+### Friends System (Supabase)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/friends/request` | POST | Send friend request |
+| `/api/friends/accept` | POST | Accept friend request |
+| `/api/friends/reject` | POST | Reject friend request |
+| `/api/friends/remove` | POST | Remove friend |
+| `/api/friends/search` | GET | Search users by name |
+| `/api/friends/pending` | GET | Get pending friend requests |
+| `/api/friends/sent` | GET | Get sent friend requests |
 
 ### Routes
 | Endpoint | Method | Description |
@@ -324,29 +343,58 @@ cd Team-7-group-project-Data-Duel
 pip install -r requirements.txt
 ```
 
-#### 2. Configure Strava API
+#### 2. Configure Environment Variables
 Create `DataDuel/backend/.env`:
 ```env
+# Strava API
 STRAVA_CLIENT_ID=your_client_id_here
 STRAVA_CLIENT_SECRET=your_client_secret_here
 REDIRECT_URI=http://localhost:5000/auth/strava/callback
+
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_anon_key
+
+# Optional
+USE_SUPABASE_STORAGE=true
+FRONTEND_URL=http://localhost:5500
 ```
 
-#### 3. Start Backend
+**Get Supabase credentials:**
+1. Go to https://supabase.com
+2. Create a project (or use existing)
+3. Go to Settings → API
+4. Copy `Project URL` and `anon public` key
+
+#### 3. Run Database Migrations
+1. Open Supabase Dashboard → SQL Editor
+2. Run migrations in order:
+   - `DataDuel/backend/supabase_stravaDB/migration_tokens.sql`
+   - `DataDuel/backend/supabase_stravaDB/migration_friends.sql`
+   - `DataDuel/backend/supabase_stravaDB/migration_user_profile.sql`
+
+#### 4. Start Backend
 ```bash
 cd DataDuel/backend
 python app.py
 ```
 Server runs at `http://localhost:5000`
 
-#### 4. Open Frontend
-Open `DataDuel/frontend/index.html` in your browser
+#### 5. Open Frontend
+Open `DataDuel/frontend/index.html` in your browser  
+Or use a local server:
+```bash
+cd DataDuel/frontend
+python -m http.server 5500
+```
+Then visit `http://localhost:5500`
 
-#### 5. Complete Flow
-1. Click **"Connect Strava"**
-2. Authorize the app
+#### 6. Complete Flow
+1. Click **"Connect Strava"** (or use **"Test Login"** for testing)
+2. Authorize the app (if using OAuth)
 3. Click **"Sync Activities"**
 4. View your **Profile** and **Leaderboard**
+5. Try **Friends** features (search, send requests)
 
 ---
 
@@ -360,15 +408,16 @@ Team-7-group-project-Data-Duel/
 └── DataDuel/
     ├── backend/
     │   ├── .env                   # Environment variables (create this)
-    │   ├── app.py                 # Flask server (528 lines)
-    │   ├── data_storage.py        # JSON storage manager
+    │   ├── app.py                 # Flask server (1,650+ lines)
+    │   ├── data_storage.py        # DEPRECATED (Supabase only now)
     │   ├── strava_parser.py       # Activity parser & calculator
     │   ├── route_generator.py     # Route system
-    │   ├── tokens.json            # OAuth tokens (auto-generated)
-    │   └── data/                  # Data storage
-    │       ├── users.json         # User profiles
-    │       ├── activities.json    # Strava activities
-    │       └── scores.json        # Calculated scores
+    │   ├── supabase_stravaDB/     # Supabase integration
+    │   │   ├── strava_user.py     # Supabase functions (1,100+ lines)
+    │   │   ├── migration_tokens.sql      # Token storage migration
+    │   │   ├── migration_friends.sql     # Friends system migration
+    │   │   └── migration_user_profile.sql # User profile migration
+    │   └── data/                  # DEPRECATED (legacy JSON files)
     │
     ├── frontend/
     │   ├── index.html             # Home page (auth status, sync button)
@@ -413,8 +462,9 @@ Team-7-group-project-Data-Duel/
 - **Future:** OpenAI (route generation), Google Maps (route visualization)
 
 ### Data Storage
-- **Current:** JSON files (MVP)
-- **Planned:** PostgreSQL with SQLAlchemy ORM
+- **Current:** Supabase PostgreSQL (production-ready)
+- **Features:** Row-level security, persistent storage, multi-user support
+- **Migrations:** SQL migration files for schema management
 
 ---
 
@@ -437,11 +487,12 @@ python main_test.py
 
 ## 🎓 Key Technical Decisions
 
-### Why JSON Storage?
-- **Fast MVP development** - No database setup required
-- **Easy debugging** - Human-readable files
-- **Simple deployment** - No database server needed
-- **Future-proof** - Easy migration to PostgreSQL
+### Why Supabase?
+- **Production-ready** - PostgreSQL database with managed infrastructure
+- **Persistent storage** - Data survives server restarts (critical for Render)
+- **Multi-user support** - Row-level security for data isolation
+- **Scalable** - Handles growth from MVP to production
+- **Developer-friendly** - SQL migrations, auto-generated APIs, real-time subscriptions
 
 ### Why Improvement-Based Scoring?
 - **Fairness** - Everyone can compete regardless of fitness level
@@ -460,33 +511,35 @@ python main_test.py
 ## 🐛 Known Issues & Limitations
 
 ### Current Limitations
-- **Single-session storage** - JSON files, no concurrent users
+- **Cold start delays** - Render free tier spins down after 15 min (30-60s first request)
 - **No user accounts** - Strava OAuth only (no local accounts)
 - **Client-side rendering** - Full page reloads for navigation
 - **Rate limiting** - No protection against Strava API limits
 - **No caching** - Fetches fresh data every time
 
 ### Security Notes
-- **Tokens in JSON** - Move to encrypted database in production
-- **No session management** - Implement Flask-Login or JWT
-- **CORS wide open** - Restrict origins in production
-- **No HTTPS** - Use SSL in production deployment
+- ✅ **Tokens in Supabase** - Encrypted at rest, secure storage
+- ✅ **Row-level security** - Users can only access their own data
+- ✅ **CORS configured** - Restricted to frontend domain
+- ✅ **HTTPS enforced** - All production traffic encrypted
+- ⚠️ **Session management** - Could add Flask-Login or JWT for enhanced security
 
 ---
 
 ## 🗺️ Future Roadmap
 
-### Phase 1: Database Migration (High Priority)
-- Migrate to PostgreSQL/SQLite
-- Implement SQLAlchemy ORM
-- Add migrations (Alembic)
-- Multi-user support with proper sessions
-
-### Phase 2: Social Features (Medium Priority)
-- Friend system (add, remove, search)
+### Phase 1: Social Features (High Priority)
+- ✅ Friend system (complete - Supabase)
 - Custom leagues (create, join, invite)
 - Friend activity feed
 - Social challenges
+- Group competitions
+
+### Phase 2: Enhanced Features (Medium Priority)
+- Real-time updates (WebSockets)
+- Push notifications
+- Advanced analytics and charts
+- Training plan recommendations
 
 ### Phase 3: Advanced Features (Lower Priority)
 - LLM-powered route generation
@@ -508,10 +561,10 @@ python main_test.py
 6. Open Pull Request
 
 ### Priority Areas
-1. **Database migration** - Replace JSON with PostgreSQL
-2. **User authentication** - Add Flask-Login or JWT
-3. **Social features** - Friends, leagues, challenges
-4. **Route generation** - LLM integration
+1. **Social features** - Custom leagues, groups, challenges
+2. **Real-time updates** - WebSockets for live data
+3. **Route generation** - LLM integration for custom routes
+4. **Mobile app** - React Native or PWA
 5. **Testing** - Expand test coverage
 
 ---
@@ -530,6 +583,14 @@ python main_test.py
 
 ---
 
-**Last Updated:** November 11, 2025  
-**Status:** MVP Complete - Ready for Demo  
-**Version:** 1.0.0
+**Last Updated:** December 2, 2025  
+**Status:** Production-Ready - Fully Deployed  
+**Version:** 2.0.0 (Supabase Migration Complete)
+
+**Recent Updates:**
+- ✅ Complete Supabase migration (100% database storage)
+- ✅ All data pipeline issues resolved
+- ✅ Standardized API endpoints
+- ✅ Enhanced token management
+- ✅ Test login feature for easy testing
+- ✅ Frontend code cleanup

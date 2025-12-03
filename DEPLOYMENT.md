@@ -35,8 +35,7 @@ Complete guide for deploying DataDuel to production (Cloudflare Pages + Render/R
                   ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                      DATA LAYER                              │
-│  Primary: Supabase PostgreSQL (user profiles, friends)      │
-│  Secondary: JSON Files (scores, activities, cache)          │
+│  Primary: Supabase PostgreSQL (all data)                     │
 │  External: Strava API (activity sync, OAuth)                │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -161,13 +160,16 @@ Should return: `{"message": "DataDuel API Server Running!", ...}`
 
 ## 🗄️ Supabase Setup
 
-### Step 1: Run Migration
+### Step 1: Run Migrations
 
 1. Open Supabase Dashboard → SQL Editor
-2. Copy contents of `DataDuel/backend/supabase_stravaDB/migration_friends.sql`
-3. Paste and click **"Run"**
-4. Verify tables created:
+2. Run migrations in order:
+   - `DataDuel/backend/supabase_stravaDB/migration_tokens.sql` (token storage)
+   - `DataDuel/backend/supabase_stravaDB/migration_friends.sql` (friends system)
+   - `DataDuel/backend/supabase_stravaDB/migration_user_profile.sql` (user profiles)
+3. Verify tables created:
    ```sql
+   SELECT * FROM user_strava;
    SELECT * FROM friends;
    SELECT * FROM friend_requests;
    ```
@@ -496,6 +498,7 @@ echo "🎉 Done!"
 
 ---
 
-**Last Updated:** November 24, 2025  
-**Status:** Production-Ready Configuration ✅
+**Last Updated:** December 2, 2025  
+**Status:** Production-Ready Configuration ✅  
+**Note:** All data storage migrated to Supabase (100% database, no JSON files)
 

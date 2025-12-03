@@ -1,6 +1,6 @@
 # 📚 DataDuel Documentation Index
 
-**Last Updated:** November 24, 2025
+**Last Updated:** December 2, 2025
 
 Welcome to DataDuel! This index helps you navigate all project documentation.
 
@@ -177,17 +177,16 @@ Team-7-group-project-Data-Duel/
 └── DataDuel/
     ├── backend/
     │   ├── app.py               ← Main Flask server
-    │   ├── data_storage.py      ← JSON storage
-    │   ├── friends_storage.py   ← Deprecated (use Supabase)
+    │   ├── data_storage.py      ← DEPRECATED (Supabase only)
+    │   ├── friends_storage.py   ← DEPRECATED (Supabase only)
     │   ├── strava_parser.py     ← Activity parser
     │   ├── route_generator.py   ← Route system
     │   ├── supabase_stravaDB/
     │   │   ├── strava_user.py   ← Supabase functions
-    │   │   └── migration_friends.sql ← DB schema
-    │   └── data/
-    │       ├── users.json       ← User profiles
-    │       ├── activities.json  ← Strava data
-    │       └── scores.json      ← Calculated scores
+    │   │   ├── migration_tokens.sql      ← Token storage
+    │   │   ├── migration_friends.sql      ← Friends system
+    │   │   └── migration_user_profile.sql ← User profiles
+    │   └── data/                  ← DEPRECATED (legacy JSON files)
     │
     ├── frontend/
     │   ├── index.html           ← Home page
