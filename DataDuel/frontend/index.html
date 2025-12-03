@@ -24,6 +24,7 @@
         <a class="btn primary" href="leaderboards.html">View Leaderboards</a>
         <a class="btn" href="profile.html">My Profile</a>
         <button id="syncBtn" class="btn" style="display:none;">Sync Activities</button>
+        <button id="testLoginBtn" class="btn" style="background:#8b5cf6; color:white;">Test Login</button>
       </div>
 
       <div id="activitiesOutput"></div>
@@ -93,6 +94,37 @@
     
     // Check status on load
     checkStatus();
+
+    // Handle test login button
+    document.getElementById('testLoginBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('testLoginBtn');
+      btn.textContent = 'Logging in...';
+      btn.disabled = true;
+      
+      try {
+        const response = await fetch(`${API_URL}/api/test-login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          alert(`Test login successful!\\n\\nAthlete ID: ${result.athlete_id}\\n\\nYou can now test all features.`);
+          // Refresh status to show connected state
+          checkStatus();
+        } else {
+          alert(`Test login failed:\\n\\n${result.error || 'Unknown error'}\\n\\n${result.message || ''}\\n\\n${result.details || ''}`);
+        }
+      } catch (error) {
+        alert(`Test login error: ${error.message}`);
+      } finally {
+        btn.textContent = 'Test Login';
+        btn.disabled = false;
+      }
+    });
 
     async function testStravaActivities() {
       const output = document.getElementById("activitiesOutput");

@@ -36,6 +36,8 @@ from supabase_stravaDB.strava_user import (
     # Legacy (deprecated)
     get_friends_user, add_friend
 )
+# Import db separately for test login lookup
+from supabase_stravaDB.strava_user import db as supabase_db
 
 
 load_dotenv()
@@ -1369,6 +1371,123 @@ def get_sent_requests_endpoint():
 #             "name": USERS[email]["name"]
 #         }
 #     })
+
+# ============================================================================
+# TEST LOGIN ENDPOINT (FOR TESTING WITH STORED CREDENTIALS)
+# ============================================================================
+
+@app.route("/api/test-login", methods=["POST"])
+def test_login():
+    """
+    Test login endpoint that uses credentials from strava_credentials.json
+    to authenticate with stored Strava tokens from Supabase.
+    This allows team members to test the app without going through OAuth.
+    """
+    print("\n" + "="*80)
+    print("[TEST LOGIN] Test login endpoint called")
+    print("="*80)
+    
+    try:
+        # Read test credentials from file
+        credentials_path = os.path.join(os.path.dirname(__file__), "strava_credentials.json")
+        
+        if not os.path.exists(credentials_path):
+            print("[ERROR] strava_credentials.json not found")
+            return jsonify({"error": "Test credentials file not found"}), 404
+        
+        with open(credentials_path, "r") as f:
+            creds = json.load(f)
+        
+        # Get athlete_id from credentials or look it up from Supabase
+        athlete_id = creds.get("athlete_id")
+        user_id = creds.get("user_id")
+        
+        # If athlete_id not in file, try to look it up from Supabase using user_id
+        if not athlete_id and user_id:
+            print(f"[TEST LOGIN] athlete_id not in file, looking up from Supabase using user_id: {user_id}")
+            try:
+                result = supabase_db.table("user_strava").select("strava_athlete_id").eq("user_id", user_id).maybe_single().execute()
+                if result.data and result.data.get("strava_athlete_id"):
+                    athlete_id = result.data.get("strava_athlete_id")
+                    print(f"[TEST LOGIN] Found athlete_id from Supabase: {athlete_id}")
+                else:
+                    print(f"[ERROR] No athlete_id found in Supabase for user_id: {user_id}")
+            except Exception as lookup_error:
+                print(f"[WARNING] Failed to look up athlete_id from Supabase: {lookup_error}")
+        
+        if not athlete_id:
+            print("[ERROR] athlete_id not found in credentials file or Supabase")
+            return jsonify({
+                "error": "athlete_id not found",
+                "message": "Please either: 1) Add 'athlete_id' field to strava_credentials.json, or 2) Make sure the user has connected Strava at least once (so athlete_id exists in Supabase)"
+            }), 400
+        
+        print(f"[TEST LOGIN] Using athlete_id: {athlete_id}")
+        
+        # Retrieve tokens from Supabase
+        print(f"[TEST LOGIN] Retrieving tokens from Supabase...")
+        tokens, error = get_strava_tokens(str(athlete_id))
+        
+        if error or not tokens:
+            print(f"[ERROR] Failed to retrieve tokens: {error}")
+            return jsonify({
+                "error": "Failed to retrieve tokens from Supabase",
+                "details": error,
+                "message": "Make sure the Strava account has been connected at least once through OAuth"
+            }), 404
+        
+        print(f"[SUCCESS] Tokens retrieved from Supabase")
+        
+        # Save tokens to tokens.json for local compatibility
+        # This allows get_valid_token() to work immediately
+        tokens_file_path = os.path.join(os.path.dirname(__file__), "tokens.json")
+        tokens_data = {
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "expires_at": tokens["expires_at"],
+            "athlete_id": str(athlete_id)
+        }
+        
+        try:
+            with open(tokens_file_path, "w") as f:
+                json.dump(tokens_data, f)
+            print(f"[SUCCESS] Tokens saved to tokens.json")
+        except Exception as file_error:
+            print(f"[WARNING] Failed to save tokens.json: {file_error}")
+            # Continue anyway - Supabase tokens are still available
+        
+        # Verify token is valid by checking expiration
+        import time
+        if time.time() > tokens.get("expires_at", 0):
+            print(f"[WARNING] Token expired, attempting refresh...")
+            refreshed, refresh_error = refresh_strava_token(str(athlete_id), CLIENT_ID, CLIENT_SECRET)
+            if refresh_error:
+                print(f"[ERROR] Token refresh failed: {refresh_error}")
+                return jsonify({
+                    "error": "Token expired and refresh failed",
+                    "details": refresh_error
+                }), 401
+            tokens = refreshed
+            print(f"[SUCCESS] Token refreshed")
+        
+        print(f"[SUCCESS] Test login successful")
+        print("="*80 + "\n")
+        
+        return jsonify({
+            "success": True,
+            "message": "Test login successful",
+            "athlete_id": str(athlete_id),
+            "token_expires_at": tokens.get("expires_at")
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] Test login failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Test login failed",
+            "details": str(e)
+        }), 500
 
 
 if __name__ == "__main__":
