@@ -212,6 +212,7 @@ def calculate_and_update_score(user_id: str):
     (stats["max_speed"] * 1) +
     (stats["streak"] * 5)
     )
+    
     score = round(score, 2)
     score = int(float(score))
     print("score: " + str(score))

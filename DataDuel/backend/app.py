@@ -1468,14 +1468,14 @@ def auto_friend_all_endpoint():
     """
     print(f"\n[FRIENDS API] Auto-friend all users endpoint called")
     
-    try:
-        # Optional: Require authentication for security
-        # _, athlete_id = get_valid_token()
-        # print(f"   User: {athlete_id}")
-    except Exception as e:
-        print(f"   [WARNING] Not authenticated: {str(e)}")
-        # For MVP demo, we'll allow unauthenticated access
-        # return jsonify({"error": "Not authenticated"}), 401
+    # try:
+    #     # Optional: Require authentication for security
+    #     # _, athlete_id = get_valid_token()
+    #     # print(f"   User: {athlete_id}")
+    # except Exception as e:
+    #     print(f"   [WARNING] Not authenticated: {str(e)}")
+    #     # For MVP demo, we'll allow unauthenticated access
+    #     # return jsonify({"error": "Not authenticated"}), 401
     
     # Call the auto-friend function
     result, error = auto_friend_all_users()
