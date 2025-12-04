@@ -31,6 +31,7 @@ from supabase_stravaDB.strava_user import (
     get_sent_requests as supabase_get_sent,
     get_friend_status as supabase_get_status,
     get_friend_profiles, search_users_by_name,
+    get_all_users_from_db, auto_friend_all_users,
     # Leaderboards & Leagues
     create_leaderboard, get_global_leaderboard, get_league_leaderboard, get_league_info,
     get_league_challenges, update_league_challenges,
@@ -592,16 +593,24 @@ def delete_leaderboard_route(leaderboard_id):
     print(f"\n[API] Delete league requested for league {leaderboard_id}")
     
     # Support both DELETE and POST methods (some clients prefer POST)
-    if request.method == "POST":
+    access_token = None
+    
+    # Try to get token from body first (works for both POST and DELETE with JSON body)
+    try:
         data = request.get_json() or {}
         access_token = data.get("access_token")
-    else:
-        # For DELETE, get token from header or query param
+    except:
+        pass
+    
+    # If not in body, try Authorization header
+    if not access_token:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             access_token = auth_header.split(" ")[1]
-        else:
-            access_token = request.args.get("access_token")
+    
+    # If still not found, try query param
+    if not access_token:
+        access_token = request.args.get("access_token")
     
     if not access_token:
         return jsonify({"error": "Missing access token"}), 400
@@ -1431,6 +1440,32 @@ def get_sent_requests_endpoint():
     
     print(f"   [SUCCESS] Returning {len(sent)} sent requests")
     return jsonify({"sent": sent, "count": len(sent)})
+
+@app.route("/api/friends/auto-friend-all", methods=["POST"])
+def auto_friend_all_endpoint():
+    """
+    Make all users in the database friends with each other (for MVP demo).
+    This endpoint should be called once to set up friendships for the demo.
+    """
+    print(f"\n[FRIENDS API] Auto-friend all users endpoint called")
+    
+    try:
+        # Optional: Require authentication for security
+        # _, athlete_id = get_valid_token()
+        # print(f"   User: {athlete_id}")
+    except Exception as e:
+        print(f"   [WARNING] Not authenticated: {str(e)}")
+        # For MVP demo, we'll allow unauthenticated access
+        # return jsonify({"error": "Not authenticated"}), 401
+    
+    # Call the auto-friend function
+    result, error = auto_friend_all_users()
+    if error:
+        print(f"   [ERROR] Failed to auto-friend users: {error}")
+        return jsonify({"error": error}), 500
+    
+    print(f"   [SUCCESS] Auto-friended all users")
+    return jsonify(result), 200
 
 # @app.post("/api/login")
 # def login():
