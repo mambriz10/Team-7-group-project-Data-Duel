@@ -19,10 +19,10 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             // Register user with Supabase Auth
             const { data: authData, error: authError } = await db.auth.signUp({ email, password });
-            if (authError) {
-                alert(authError.message);
-                return;
-            }
+            // if (authError) {
+            //     alert(authError.message);
+            //     return;
+            // }
 
             const userId = authData.user.id;
             //const accessToken = data.session.accessToken;
@@ -39,11 +39,11 @@ document.addEventListener("DOMContentLoaded", () => {
             // If backend returned a JSON error, parse it
             const result = await response.json().catch(() => ({}));
 
-            if (!response.ok) {
-                // Backend sent an error message
-                alert(result.error || "Something went wrong.");
-                return;
-            }
+            // if (!response.ok) {
+            //     // Backend sent an error message
+            //     alert(result.error || "Something went wrong.");
+            //     return;
+            // }
             // Registration succeeded, optionally reset form
             form.reset();
             
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = "http://localhost:5500/index.html";
         } catch (err) {
             console.error("Unexpected error:", err);
-            alert("An unexpected error occurred. Please try again.");
+            //alert("An unexpected error occurred. Please try again.");
         }
 
         alert("Registration successful!");
