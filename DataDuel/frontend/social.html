@@ -31,7 +31,7 @@
 
       <!-- League Dialog -->
       <dialog id="leagueDialog" aria-label="Create League">
-        <form method="dialog" id="leagueForm" class="form" style="padding:16px;">
+        <form id="leagueForm" class="form" style="padding:16px;">
           <h3 style="margin:0 0 8px;">Create League</h3>
         
           <div>
@@ -338,14 +338,26 @@
         
         const result = await response.json();
         console.log('League created successfully:', result);
-        alert(`League "${name}" created successfully with ${members.length} member(s)!`);
         
+        // Reset form
         leagueForm.reset();
+        
+        // Close dialog
         leagueDialog.close();
-        renderLeagues();
+        
+        // Refresh leagues list to show the new league
+        try {
+          await renderLeagues();
+        } catch (renderError) {
+          console.error('Error refreshing leagues:', renderError);
+        }
+        
+        // Show success message after dialog is closed and leagues are refreshed
+        alert(`League "${name}" created successfully with ${members.length} member(s)!`);
       } catch (error) {
         console.error('Error creating league:', error);
         alert(error.message || 'Failed to create league. Please try again.');
+        // Don't close dialog on error so user can try again
       }
     });
 
