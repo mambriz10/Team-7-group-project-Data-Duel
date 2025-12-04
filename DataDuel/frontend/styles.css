@@ -101,23 +101,40 @@ p {
 /* =========================
    TABS (BOTTOM NAV)
    ========================= */
-nav.tabs {
-  position: sticky;
-  bottom: 0;
-  background: var(--panel);
-  border-top: 1px solid var(--border);
-}
+   nav.tabs {
+    position: fixed; 
+    bottom: 0;
+    left: 0;         
+    width: 100%;      
+    z-index: 1000;    
+    
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+ 
+    display: flex;   
+    justify-content: center; 
+  }
 
-nav.tabs .row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  max-width: 720px;
-  margin: 0 auto;
-}
+  nav.tabs .row {
+    /* This wrapper holds the tabs */
+    display: flex;
+    
+    max-width: 500px;
+    width: 100%;     
+    
+    /* Distribute space evenly among the tabs */
+    justify-content: space-around; 
+    align-items: center;
+    
+    margin: 0; 
+    gap: 0;   
+    padding: 0; 
+  }
 
 nav.tabs a {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 4px;
   padding: 12px 0;
   text-decoration: none;
@@ -623,3 +640,4 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
   outline-offset: 2px;
   border-radius: 8px;
 }
+
