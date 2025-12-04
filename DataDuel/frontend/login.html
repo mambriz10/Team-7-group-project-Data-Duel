@@ -136,32 +136,32 @@
 		const emailError = document.getElementById('emailError');
 		const passwordError = document.getElementById('passwordError');
 
-		form.addEventListener('submit', (e) => {
-			e.preventDefault();
+		// form.addEventListener('submit', (e) => {
+		// 	e.preventDefault();
 			
-			let isValid = true;
+		// 	let isValid = true;
 			
-			// Reset errors
-			emailError.style.display = 'none';
-			passwordError.style.display = 'none';
+		// 	// Reset errors
+		// 	emailError.style.display = 'none';
+		// 	passwordError.style.display = 'none';
 			
-			// Validate email
-			if (!emailInput.value || !emailInput.validity.valid) {
-				emailError.style.display = 'block';
-				isValid = false;
-			}
+		// 	// Validate email
+		// 	if (!emailInput.value || !emailInput.validity.valid) {
+		// 		emailError.style.display = 'block';
+		// 		isValid = false;
+		// 	}
 			
-			// Validate password
-			if (!passwordInput.value) {
-				passwordError.style.display = 'block';
-				isValid = false;
-			}
+		// 	// Validate password
+		// 	if (!passwordInput.value) {
+		// 		passwordError.style.display = 'block';
+		// 		isValid = false;
+		// 	}
 			
-			if (isValid) {
-				// Form is valid, let the login.js handle submission
-				form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-			}
-		});
+		// 	// if (isValid) {
+		// 	// 	// Form is valid, let the login.js handle submission
+		// 	// 	form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		// 	// }
+		// });
 	</script>
 </body>
 </html>
