@@ -27,9 +27,14 @@
                  alt="Avatar" class="avatar-large" />
             <div class="avatar-badge">🏃</div>
           </div>
-          <div class="profile-info">
-            <h1 id="userName">Runner Name</h1>
-            <p id="userInfo" class="profile-meta">@handle • Location</p>
+          <div class="profile-info" style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1;">
+              <h1 id="userName" style="margin: 0 0 4px;">Runner Name</h1>
+              <p id="userInfo" class="profile-meta">@handle • Location</p>
+            </div>
+            <button id="statsTooltipBtn" class="stats-tooltip-btn" aria-label="Stats information">
+              <span>ℹ️</span>
+            </button>
           </div>
         </div>
 
@@ -39,32 +44,28 @@
 
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-value" id="runs">0</div>
-            <div class="stat-label">Runs</div>
+            <div class="stat-value" id="totalWorkouts">0</div>
+            <div class="stat-label">Total Workouts</div>
           </div>
-          <div class="stat-card highlight">
-            <div class="stat-value" id="distance">0 km</div>
-            <div class="stat-label">Distance</div>
+          <div class="stat-card ">
+            <div class="stat-value" id="totalDistance">0 km</div>
+            <div class="stat-label">Total Distance</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="pace">0</div>
-            <div class="stat-label">Avg Pace</div>
+            <div class="stat-value" id="averageSpeed">0 m/s</div>
+            <div class="stat-label">Average Speed</div>
           </div>
-          <div class="stat-card highlight">
+          <div class="stat-card ">
+            <div class="stat-value" id="maxSpeed">0 m/s</div>
+            <div class="stat-label">Max Speed</div>
+          </div>
+          <div class="stat-card">
             <div class="stat-value" id="score">0</div>
             <div class="stat-label">Score</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="cadence">0</div>
-            <div class="stat-label">Avg Cadence</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="heartrate">0</div>
-            <div class="stat-label">Avg HR</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="elevation">0</div>
-            <div class="stat-label">Elevation</div>
+            <div class="stat-value" id="streak">0 days</div>
+            <div class="stat-label">Streak</div>
           </div>
         </div>
       </div>
@@ -75,13 +76,6 @@
       </div>
 
       <div class="action-grid" role="navigation" aria-label="Profile subpages">
-        <a class="action-card primary" href="profile-challenges.html">
-          <div class="action-icon">🏅</div>
-          <div class="action-text">
-            <strong>Challenges & Badges</strong>
-            <span>View achievements</span>
-          </div>
-        </a>
         <a class="action-card primary" href="profile-stats.html">
           <div class="action-icon">📊</div>
           <div class="action-text">
@@ -92,6 +86,38 @@
       </div>
     </section>
   </main>
+
+  <!-- Stats Tooltip Dialog -->
+  <dialog id="statsTooltipDialog" aria-label="Stats Information">
+    <div style="padding: 20px; min-width: 300px;">
+      <h3 style="margin: 0 0 16px;">Stats Explained</h3>
+      <div style="display: grid; gap: 12px;">
+        <div>
+          <strong>Total Workouts:</strong> Total number of running activities you've completed.
+        </div>
+        <div>
+          <strong>Total Distance:</strong> Total distance covered across all your runs in kilometers.
+        </div>
+        <div>
+          <strong>Average Speed:</strong> Your average speed across all runs in meters per second.
+        </div>
+        <div>
+          <strong>Max Speed:</strong> Your maximum speed achieved during any run in meters per second.
+        </div>
+        <div>
+          <strong>Score:</strong> Your overall performance score based on total workouts, max workouts, and other metrics.
+        </div>
+        <div>
+          <strong>Streak:</strong> Current consecutive days of running activities.
+        </div>
+      </div>
+      <div style="text-align: left; margin-top: 16px;">
+        <a href="#" id="statsTooltipCloseBtn" class="back-button" aria-label="Close">
+          <span style="font-size: 18px;">←</span>
+        </a>
+      </div>
+    </div>
+  </dialog>
 
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
@@ -216,6 +242,7 @@
           totalDistance: data.total_distance,
           averageSpeed: data.average_speed,
           maxSpeed: data.max_speed,
+          score: data.score || 0,
           streak: data.streak,
           badges: data.badges,
           weeklyChallenges: data.weekly_challenges
@@ -229,12 +256,12 @@
       document.getElementById('avatar').src = data.avatar || '/default-avatar.png';
 
       // Update stats
-      document.getElementById('distance').textContent = stats.totalDistance.toFixed(1) + ' km';
-      document.getElementById('pace').textContent = stats.averageSpeed 
-          ? (1000 / stats.averageSpeed / 60).toFixed(2) + ' min/km'  // m/s -> min/km
-          : '0 min/km';
-      document.getElementById('score').textContent = stats.totalWorkouts;  // or compute your own score
-      document.getElementById('runs').textContent = stats.totalWorkouts;
+      document.getElementById('totalWorkouts').textContent = stats.totalWorkouts || 0;
+      document.getElementById('totalDistance').textContent = (stats.totalDistance || 0).toFixed(1) + ' km';
+      document.getElementById('averageSpeed').textContent = (stats.averageSpeed || 0).toFixed(2) + ' m/s';
+      document.getElementById('maxSpeed').textContent = (stats.maxSpeed || 0).toFixed(2) + ' m/s';
+      document.getElementById('score').textContent = stats.score || 0;
+      document.getElementById('streak').textContent = (stats.streak || 0) + ' days';
 
       // Show warning if no runs
       if (!stats.totalWorkouts || stats.totalWorkouts === 0) {
@@ -261,6 +288,24 @@
       document.addEventListener('DOMContentLoaded', loadProfile);
     } else {
       loadProfile();
+    }
+
+    // Stats tooltip functionality
+    const statsTooltipBtn = document.getElementById('statsTooltipBtn');
+    const statsTooltipDialog = document.getElementById('statsTooltipDialog');
+    const statsTooltipCloseBtn = document.getElementById('statsTooltipCloseBtn');
+
+    if (statsTooltipBtn && statsTooltipDialog) {
+      statsTooltipBtn.addEventListener('click', () => {
+        statsTooltipDialog.showModal();
+      });
+    }
+
+    if (statsTooltipCloseBtn && statsTooltipDialog) {
+      statsTooltipCloseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        statsTooltipDialog.close();
+      });
     }
   </script>
 </body>

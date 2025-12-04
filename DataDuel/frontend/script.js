@@ -81,12 +81,66 @@ document.addEventListener('DOMContentLoaded', () => {
         titleText = pageTitles[path] || 'DataDuel';
       }
       
-      header.innerHTML = `<h1>${titleText}</h1>`;
+      const titleH1 = document.createElement('h1');
+      titleH1.textContent = titleText;
+      header.appendChild(titleH1);
+      
+      // Create button container for login and theme toggle
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.display = 'flex';
+      buttonContainer.style.alignItems = 'center';
+      buttonContainer.style.gap = '8px';
+      
+      // Create login button
+      const loginBtn = document.createElement('a');
+      loginBtn.id = 'loginToggle';
+      loginBtn.href = 'login.html';
+      loginBtn.className = 'login-toggle';
+      loginBtn.setAttribute('aria-label', 'Login');
+      loginBtn.innerHTML = '<span>⚙️</span>';
+      buttonContainer.appendChild(loginBtn);
+      
+      // Add theme toggle to button container
+      buttonContainer.appendChild(toggle);
+      
+      header.appendChild(buttonContainer);
       
       document.body.insertBefore(header, document.body.firstChild);
+    } else {
+      // Header exists, check if login button exists
+      let loginBtn = document.getElementById('loginToggle');
+      if (!loginBtn) {
+        // Find the theme toggle to place login button next to it
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+          // Create button container if it doesn't exist
+          let buttonContainer = themeToggle.parentElement;
+          if (!buttonContainer || buttonContainer === header || buttonContainer.classList.contains('header')) {
+            // Create a container for buttons
+            buttonContainer = document.createElement('div');
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.alignItems = 'center';
+            buttonContainer.style.gap = '8px';
+            themeToggle.parentNode.insertBefore(buttonContainer, themeToggle);
+            buttonContainer.appendChild(themeToggle);
+          }
+          
+          // Create login button
+          loginBtn = document.createElement('a');
+          loginBtn.id = 'loginToggle';
+          loginBtn.href = 'login.html';
+          loginBtn.className = 'login-toggle';
+          loginBtn.setAttribute('aria-label', 'Login');
+          loginBtn.innerHTML = '<span>⚙️</span>';
+          buttonContainer.insertBefore(loginBtn, themeToggle);
+        }
+      }
     }
     
-    header.appendChild(toggle);
+    // Only append toggle if it doesn't exist
+    if (!document.getElementById('themeToggle')) {
+      header.appendChild(toggle);
+    }
     
     // Update icon based on current theme
     function updateIcon() {

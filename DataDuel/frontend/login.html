@@ -2,68 +2,166 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<meta name="author" content="Muhamad Nauval Azhar">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<meta name="description" content="This is a login page template based on Bootstrap 5">
-	<title>DataDuel Login</title>
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
+	<title>Login – DataDuels</title>
+	<link rel="stylesheet" href="styles.css" />
+	<style>
+		.login-form {
+			display: grid;
+			gap: 16px;
+		}
+		.login-form label {
+			font-weight: 600;
+			color: var(--ink);
+			margin-bottom: 4px;
+			display: block;
+		}
+		.login-form input[type="email"],
+		.login-form input[type="password"] {
+			width: 100%;
+			padding: 12px;
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			background: var(--panel);
+			color: var(--ink);
+			font-size: 14px;
+		}
+		.login-form input:focus {
+			outline: 2px solid var(--brand);
+			outline-offset: 2px;
+		}
+		.login-form .form-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.login-form .checkbox-row {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.login-form input[type="checkbox"] {
+			width: auto;
+		}
+		.login-form .actions {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-top: 8px;
+		}
+		.login-footer {
+			text-align: center;
+			padding-top: 16px;
+			border-top: 1px solid var(--border);
+			margin-top: 16px;
+			color: var(--muted);
+		}
+		.login-footer a {
+			color: var(--brand);
+			text-decoration: none;
+			font-weight: 600;
+		}
+		.login-footer a:hover {
+			text-decoration: underline;
+		}
+		.forgot-link {
+			color: var(--brand);
+			text-decoration: none;
+			font-size: 14px;
+		}
+		.forgot-link:hover {
+			text-decoration: underline;
+		}
+		.error-message {
+			color: #ef4444;
+			font-size: 14px;
+			margin-top: 4px;
+		}
+	</style>
 </head>
 
 <body>
-	<section class="h-100">
-		<div class="container h-100">
-			<div class="row justify-content-sm-center h-100">
-				<div class="col-xxl-4 col-xl-5 col-lg-5 col-md-7 col-sm-9">
-					<div class="text-center my-5">
-                        <h1 style="font-weight: 600;">DataDuel</h1>
-                    </div>
-					<div class="card shadow-lg">
-						<div class="card-body p-5">
-							<h1 class="fs-4 card-title fw-bold mb-4">Login</h1>
-
-							<form id="loginForm" class="needs-validation" novalidate autocomplete="off">
-								<div class="mb-3">
-									<label class="mb-2 text-muted" for="email">E-Mail Address</label>
-									<input id="email" type="email" class="form-control" required autofocus>
-									<div class="invalid-feedback">Email is invalid</div>
-								</div>
-
-								<div class="mb-3">
-									<div class="d-flex justify-content-between">
-										<label class="text-muted" for="password">Password</label>
-										<a href="forgot.html">Forgot Password?</a>
-									</div>
-									<input id="password" type="password" class="form-control" required>
-									<div class="invalid-feedback">Password is required</div>
-								</div>
-
-								<div class="d-flex align-items-center">
-									<div class="form-check">
-										<input type="checkbox" id="remember" class="form-check-input">
-										<label for="remember" class="form-check-label">Remember Me</label>
-									</div>
-
-									<button type="submit" class="btn btn-primary ms-auto">
-										Login
-									</button>
-								</div>
-							</form>
-						</div>
-
-						<div class="card-footer py-3 border-0 text-center">
-							Don't have an account? <a href="register.html" class="text-dark">Create one</a>
-						</div>
-					</div>
-
-					<div class="text-center mt-5 text-muted">
-						© 2025 DataDuel
-					</div>
-				</div>
+	<main class="page">
+		<section class="card" aria-label="Login">
+			<div class="page-title-with-back">
+				<a href="index.html" class="back-button" aria-label="Back to Home">
+					<span style="font-size: 18px;">←</span>
+				</a>
+				<h1>Login</h1>
 			</div>
-		</div>
-	</section>
+			<p>Login to your account</p>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-	<script type = "module" src="js/login.js"></script>
+			<form id="loginForm" class="login-form" novalidate autocomplete="off">
+				<div>
+					<label for="email">E-Mail Address</label>
+					<input id="email" type="email" required autofocus>
+					<div class="error-message" id="emailError" style="display: none;">Email is invalid</div>
+				</div>
+
+				<div>
+					<div class="form-row">
+						<label for="password">Password</label>
+						<a href="forgot.html" class="forgot-link">Forgot Password?</a>
+					</div>
+					<input id="password" type="password" required>
+					<div class="error-message" id="passwordError" style="display: none;">Password is required</div>
+				</div>
+
+				<div class="actions">
+					<div class="checkbox-row">
+						<input type="checkbox" id="remember">
+						<label for="remember" style="margin: 0; font-weight: 400;">Remember Me</label>
+					</div>
+
+					<button type="submit" class="btn primary">
+						Login
+					</button>
+				</div>
+			</form>
+
+			<div class="login-footer">
+				Don't have an account? <a href="register.html">Create one</a>
+			</div>
+		</section>
+	</main>
+
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="script.js"></script>
+	<script type="module" src="js/login.js"></script>
+	<script>
+		// Form validation
+		const form = document.getElementById('loginForm');
+		const emailInput = document.getElementById('email');
+		const passwordInput = document.getElementById('password');
+		const emailError = document.getElementById('emailError');
+		const passwordError = document.getElementById('passwordError');
+
+		form.addEventListener('submit', (e) => {
+			e.preventDefault();
+			
+			let isValid = true;
+			
+			// Reset errors
+			emailError.style.display = 'none';
+			passwordError.style.display = 'none';
+			
+			// Validate email
+			if (!emailInput.value || !emailInput.validity.valid) {
+				emailError.style.display = 'block';
+				isValid = false;
+			}
+			
+			// Validate password
+			if (!passwordInput.value) {
+				passwordError.style.display = 'block';
+				isValid = false;
+			}
+			
+			if (isValid) {
+				// Form is valid, let the login.js handle submission
+				form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+			}
+		});
+	</script>
 </body>
 </html>
