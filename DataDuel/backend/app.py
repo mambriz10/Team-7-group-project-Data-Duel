@@ -36,7 +36,7 @@ from supabase_stravaDB.strava_user import (
     get_league_challenges, update_league_challenges,
     fetch_user_leaderboards, delete_leaderboard,
     # Legacy (deprecated)
-    get_friends_user, add_friend
+    get_friends_user, add_friend, calculate_and_update_score
 )
 
 
@@ -562,6 +562,25 @@ def create_leaderboard_route():
         return jsonify({"error": error}), 400
 
     return jsonify({"message": "Leaderboard created!", "leaderboard_id": result["leaderboard_id"]}), 200
+
+@app.route("/user/calculate_score", methods=["POST"])
+def calculate_user_score():
+    data = request.get_json()
+
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    result, error = calculate_and_update_score(user_id)
+
+    if error:
+        return jsonify(error), 500
+
+    return jsonify({
+        "message": "Score calculated and updated successfully",
+        **result
+    }), 200
+
 
 @app.route("/leaderboard/add_member", methods=["POST"])
 def add_member_route():

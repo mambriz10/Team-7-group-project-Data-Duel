@@ -82,13 +82,14 @@
     import { db } from "/strava_user_frontend.js";
     async function checkStatus() {
       try {
+        const { data: { session } } = await db.auth.getSession();
+
         //const status = await api.getStatus();
         const statusContent = document.getElementById('statusContent');
         
-        if (status.authenticated) {
+        if (session) {
           statusContent.innerHTML = `
             <p style="margin:0; color:#10b981;">[Connected] Connected to Strava</p>
-            <p style="margin:4px 0 0 0; font-size:13px; color:var(--muted);">User ID: ${status.athlete_id}</p>
           `;
           const syncBtn = document.getElementById('syncBtn');
           if (syncBtn) syncBtn.style.display = 'flex';
@@ -195,7 +196,7 @@
         }
 
         const activities = await res.json();
-        output.textContent = JSON.stringify(activities, null, 2);
+        //output.textContent = JSON.stringify(activities, null, 2);
 
         const { data: { session } } = await db.auth.getSession();
         if (!session) {
@@ -212,6 +213,16 @@
         });
         const ac = res2.json();
         console.log("this is the data: " + JSON.stringify(ac, null, 2));
+        output.textContent = "";
+
+        const user_id = session.user.id
+        const result = await fetch(`${API_URL}/user/calculate_score`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: session.user.id })
+        });
+        
+        //calculate the score;
 
         // Note: Activity update should be handled separately if needed
         // The original implementation didn't automatically update activities here

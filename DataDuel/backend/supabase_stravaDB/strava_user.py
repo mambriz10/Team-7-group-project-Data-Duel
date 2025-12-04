@@ -189,6 +189,50 @@ def insert_user_profile( user_id, username, email):
     except Exception as e:
         return str(e)
 
+def calculate_and_update_score(user_id: str):
+    # 1️⃣ Fetch stats
+    result = (
+        db
+        .table("user_strava")
+        .select("total_workouts, total_distance, average_speed, max_speed, streak")
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+
+
+
+    stats = result.data
+
+    # 2️⃣ Compute score
+    score = (
+    (stats["total_workouts"] * 10) +
+    (stats["total_distance"] / 10000) +
+    (stats["average_speed"] * 2) +
+    (stats["max_speed"] * 1) +
+    (stats["streak"] * 5)
+    )
+    score = round(score, 2)
+    score = int(float(score))
+    print("score: " + str(score))
+    # 3️⃣ Update DB with score
+    update_result = (
+        db
+        .table("user_strava")
+        .update({"score": score})
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    
+
+    # 4️⃣ Return structured result
+    return {
+        "user_id": user_id,
+        "stats": stats,
+        "score": score
+    }, None
+
 # =============================================================================
 # FRIENDS SYSTEM - COMPLETE SUPABASE IMPLEMENTATION
 # =============================================================================
