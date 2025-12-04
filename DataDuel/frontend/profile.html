@@ -137,33 +137,33 @@
     
     //Load profile data when page loads
     async function loadProfile() {
-      try {
-        const data = await api.getProfile();
-        console.log('Profile data loaded:', data);
+      // try {
+      //   //const data = await api.getProfile();
+      //   //console.log('Profile data loaded:', data);
         
-        // Update UI with data
-        document.getElementById('userName').textContent = data.name;
-        document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
-        document.getElementById('avatar').src = data.avatar;
+      //   // Update UI with data
+      //   document.getElementById('userName').textContent = data.name;
+      //   document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
+      //   document.getElementById('avatar').src = data.avatar;
         
-        document.getElementById('runs').textContent = data.stats.runs || 0;
-        document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
-        document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
-        document.getElementById('score').textContent = data.stats.score || 0;
+      //   document.getElementById('runs').textContent = data.stats.runs || 0;
+      //   document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
+      //   document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
+      //   document.getElementById('score').textContent = data.stats.score || 0;
         
-        // Show warning if no data
-        if (!data.stats.runs || data.stats.runs === 0) {
-          document.getElementById('noDataWarning').style.display = 'block';
-        }
+      //   // Show warning if no data
+      //   if (!data.stats.runs || data.stats.runs === 0) {
+      //     document.getElementById('noDataWarning').style.display = 'block';
+      //   }
         
-        // Show content, hide loading
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('profileContent').style.display = 'block';
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'block';
-      }
+      //   // Show content, hide loading
+      //   document.getElementById('loading').style.display = 'none';
+      //   document.getElementById('profileContent').style.display = 'block';
+      // } catch (error) {
+      //   console.error('Failed to load profile:', error);
+      //   document.getElementById('loading').style.display = 'none';
+      //   document.getElementById('error').style.display = 'block';
+      // }
     }
     
     // // Load on page ready
@@ -173,11 +173,7 @@
     //   loadProfile();
     // }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadProfile_new);
-    } else {
-      loadProfile_new();
-    }
+    
 
     import { db } from "/strava_user_frontend.js";
     async function loadProfile_new() {
@@ -188,7 +184,7 @@
             return;
         }
 
-        const res = await fetch(`${API_URL}/person/get-activities`, {
+        const res = await fetch(`http://127.0.0.1:5000/person/get-activities`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -199,9 +195,21 @@
 
         // Parse the JSON response
         const data = await res.json();
+        // console.log("this is the data: " + JSON.stringify(data, null, 2));
+        // //Step 2: Update person activities
+        
 
-        // // Log it in a readable format
-        // console.log(data);
+        // if (!res2.ok) {
+        //     const err2 = await res2.json();
+        //     console.error("Error updating activities:", err2);
+        //     return;
+        // }
+
+        //const updatedPerson = await res2.json();
+        //console.log("Updated person data:", updatedPerson);
+
+        // Log it in a readable format
+        console.log(data);
         const stats = {
           username: data.username,
           totalWorkouts: data.total_workouts,
@@ -242,7 +250,12 @@
         document.getElementById('error').style.display = 'block';
       }
     }
-    
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadProfile_new);
+    } else {
+      loadProfile_new();
+    }
     // Load on page ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', loadProfile);

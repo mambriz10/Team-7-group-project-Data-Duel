@@ -36,7 +36,7 @@
             <strong>My Profile</strong>
             <span>View stats</span>
           </div>
-        </a>
+        </a> 
         <a id="connectStravaBtn" class="action-card primary" href="#" style="display:none;">
           <div class="action-icon">🔗</div>
           <div class="action-text">
@@ -44,20 +44,20 @@
             <span>Link account</span>
           </div>
         </a>
-        <button id="syncBtn" class="action-card sync-card" style="display:none;">
+        <!-- <button id="syncBtn" class="action-card sync-card" style="display:none;">
           <div class="action-icon">🔄</div>
           <div class="action-text">
             <strong>Sync Activities</strong>
             <span>Update data</span>
           </div>
-        </button>
+        </button> -->
         <button id="testLoginBtn" class="action-card" style="background:var(--brand); color:white; border:none;">
           <div class="action-icon">🔐</div>
           <div class="action-text">
             <strong>Test Login</strong>
             <span>Dev mode</span>
           </div>
-        </button>
+        </button> 
       </div>
 
       <div id="activitiesOutput"></div>
@@ -79,10 +79,10 @@
   <script src="script.js"></script>
   <script type="module">
     import { API_URL } from './config.js';
-
+    import { db } from "/strava_user_frontend.js";
     async function checkStatus() {
       try {
-        const status = await api.getStatus();
+        //const status = await api.getStatus();
         const statusContent = document.getElementById('statusContent');
         
         if (status.authenticated) {
@@ -110,6 +110,7 @@
         document.getElementById('statusContent').innerHTML = `
           <p style="margin:0; color:#ef4444;">[Error] Backend not reachable</p>
           <p style="font-size:13px; margin:4px 0 0 0; color:var(--muted);">Backend URL: ${API_URL}</p>
+
         `;
       }
     }
@@ -123,7 +124,7 @@
       btn.disabled = true;
       
       try {
-        const result = await api.syncActivities();
+        //const result = await api.syncActivities();
         alert(`Sync successful!\\n\\nWorkouts: ${result.metrics.total_workouts}\\nDistance: ${result.metrics.total_distance_km} km\\nScore: ${result.metrics.score}`);
         checkStatus();
       } catch (error) {
@@ -148,38 +149,38 @@
     checkStatus();
 
     // Handle test login button
-    const testLoginBtn = document.getElementById('testLoginBtn');
-    if (testLoginBtn) {
-      testLoginBtn.addEventListener('click', async () => {
-      const btn = document.getElementById('testLoginBtn');
-      btn.textContent = 'Logging in...';
-      btn.disabled = true;
+    // const testLoginBtn = document.getElementById('testLoginBtn');
+    // if (testLoginBtn) {
+    //   testLoginBtn.addEventListener('click', async () => {
+    //   const btn = document.getElementById('testLoginBtn');
+    //   btn.textContent = 'Logging in...';
+    //   btn.disabled = true;
       
-      try {
-        const response = await fetch(`${API_URL}/api/test-login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+    //   try {
+    //     const response = await fetch(`${API_URL}/api/test-login`, {
+    //       method: 'POST',
+    //       headers: {
+    //         'Content-Type': 'application/json'
+    //       }
+    //     });
         
-        const result = await response.json();
+    //     const result = await response.json();
         
-        if (response.ok) {
-          alert(`Test login successful!\\n\\nAthlete ID: ${result.athlete_id}\\n\\nYou can now test all features.`);
-          // Refresh status to show connected state
-          checkStatus();
-        } else {
-          alert(`Test login failed:\\n\\n${result.error || 'Unknown error'}\\n\\n${result.message || ''}\\n\\n${result.details || ''}`);
-        }
-      } catch (error) {
-        alert(`Test login error: ${error.message}`);
-      } finally {
-        btn.textContent = 'Test Login';
-        btn.disabled = false;
-      }
-      });
-    }
+    //     if (response.ok) {
+    //       alert(`Test login successful!\\n\\nAthlete ID: ${result.athlete_id}\\n\\nYou can now test all features.`);
+    //       // Refresh status to show connected state
+    //       checkStatus();
+    //     } else {
+    //       alert(`Test login failed:\\n\\n${result.error || 'Unknown error'}\\n\\n${result.message || ''}\\n\\n${result.details || ''}`);
+    //     }
+    //   } catch (error) {
+    //     alert(`Test login error: ${error.message}`);
+    //   } finally {
+    //     btn.textContent = 'Test Login';
+    //     btn.disabled = false;
+    //   }
+    //   });
+    // }
 
     async function testStravaActivities() {
       const output = document.getElementById("activitiesOutput");
@@ -195,6 +196,22 @@
 
         const activities = await res.json();
         output.textContent = JSON.stringify(activities, null, 2);
+
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) {
+            console.error("No active session found!");
+            return;
+        }
+        const res2 = await fetch(`${API_URL}/person/update-activities`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                access_token: session.access_token,
+                activities: activities
+            })
+        });
+        const ac = res2.json();
+        console.log("this is the data: " + JSON.stringify(ac, null, 2));
 
         // Note: Activity update should be handled separately if needed
         // The original implementation didn't automatically update activities here

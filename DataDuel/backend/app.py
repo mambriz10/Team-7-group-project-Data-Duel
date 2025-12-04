@@ -32,7 +32,7 @@ from supabase_stravaDB.strava_user import (
     get_friend_status as supabase_get_status,
     get_friend_profiles, search_users_by_name,
     # Legacy (deprecated)
-    get_friends_user, add_friend
+    get_friends_user, add_friend, create_leaderboard
 )
 
 
@@ -420,6 +420,7 @@ def update_person_activities():
     # Check weekly challenges
     StravaParser.check_challenges(person, activities_list)
     
+    # print("person:" + str(person.score))
     # Prepare response dictionary
     response_data = {
         "username": person.display_name,
