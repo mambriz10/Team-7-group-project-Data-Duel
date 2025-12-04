@@ -380,6 +380,101 @@ def remove_friend(user_id: str, friend_id: str):
         return None, str(e)
 
 
+def get_all_users_from_db():
+    """
+    Get all users from the user_strava table.
+    Returns: (users_list, error_message)
+    """
+    print(f"[SUPABASE] Fetching all users from database")
+    
+    try:
+        response = (
+            db.table("user_strava")
+            .select("user_id, username, email")
+            .execute()
+        )
+        
+        print(f"[SUPABASE] Found {len(response.data)} users")
+        return response.data, None
+        
+    except Exception as e:
+        print(f"[SUPABASE] Error fetching all users: {str(e)}")
+        return None, str(e)
+
+
+def auto_friend_all_users():
+    """
+    Make all users in the database friends with each other (for MVP demo).
+    Creates bidirectional friendships for all user pairs.
+    Returns: (success_data, error_message)
+    """
+    print(f"[SUPABASE FRIENDS] Auto-friending all users for MVP demo")
+    
+    try:
+        # Get all users
+        users, error = get_all_users_from_db()
+        if error:
+            return None, error
+        
+        if not users or len(users) < 2:
+            return {"success": True, "message": "Not enough users to create friendships", "friendships_created": 0}, None
+        
+        user_ids = [user["user_id"] for user in users]
+        print(f"[SUPABASE FRIENDS] Processing {len(user_ids)} users")
+        
+        # Get existing friendships to avoid duplicates
+        existing_friends = db.table("friends").select("user_id, friend_id").execute()
+        existing_pairs = set()
+        for friendship in existing_friends.data:
+            # Store both directions to check easily
+            pair = tuple(sorted([friendship["user_id"], friendship["friend_id"]]))
+            existing_pairs.add(pair)
+        
+        # Create friendships for all pairs
+        friendships_to_create = []
+        friendships_created = 0
+        
+        for i in range(len(user_ids)):
+            for j in range(i + 1, len(user_ids)):
+                user1_id = user_ids[i]
+                user2_id = user_ids[j]
+                
+                # Check if already friends
+                pair = tuple(sorted([user1_id, user2_id]))
+                if pair in existing_pairs:
+                    continue
+                
+                # Add bidirectional friendship
+                friendships_to_create.append({
+                    "user_id": user1_id,
+                    "friend_id": user2_id
+                })
+                friendships_to_create.append({
+                    "user_id": user2_id,
+                    "friend_id": user1_id
+                })
+        
+        # Insert all friendships in batches (Supabase has limits)
+        if friendships_to_create:
+            batch_size = 100
+            for i in range(0, len(friendships_to_create), batch_size):
+                batch = friendships_to_create[i:i + batch_size]
+                db.table("friends").insert(batch).execute()
+                friendships_created += len(batch) // 2  # Divide by 2 since we count pairs
+        
+        print(f"[SUPABASE FRIENDS] Successfully created {friendships_created} friendships")
+        return {
+            "success": True,
+            "message": f"Successfully created {friendships_created} friendships",
+            "friendships_created": friendships_created,
+            "total_users": len(user_ids)
+        }, None
+        
+    except Exception as e:
+        print(f"[SUPABASE FRIENDS] Error auto-friending users: {str(e)}")
+        return None, str(e)
+
+
 def get_friends_list(user_id: str):
     """
     Get list of all friends for a user (returns friend_ids only).
