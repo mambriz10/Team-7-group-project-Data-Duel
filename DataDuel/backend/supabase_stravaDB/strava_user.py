@@ -76,8 +76,9 @@ def save_credentials_new(client_id: str, client_secret: str, access_token: str):
     response = db.table("user_strava").upsert({
         "user_id": user_id,
         "client_id": client_id,
-        "client_secret": client_secret
-    }).execute()
+        "client_secret": client_secret,
+        "access_token": access_token
+    }, on_conflict="user_id").execute()
 
     return response
 

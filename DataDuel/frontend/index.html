@@ -48,7 +48,7 @@
 
     async function checkStatus() {
       try {
-        const status = await api.getStatus();
+        //const status = await api.getStatus();
         const statusContent = document.getElementById('statusContent');
         
         if (status.authenticated) {
@@ -79,7 +79,7 @@
       btn.disabled = true;
       
       try {
-        const result = await api.syncActivities();
+        //const result = await api.syncActivities();
         alert(`Sync successful!\\n\\nWorkouts: ${result.metrics.total_workouts}\\nDistance: ${result.metrics.total_distance_km} km\\nScore: ${result.metrics.score}`);
         checkStatus();
       } catch (error) {
