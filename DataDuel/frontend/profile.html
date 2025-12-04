@@ -156,9 +156,9 @@
     //   }
     // }
     
-    // Set up Connect Strava button
+    // Set up Connect Strava button - redirect to Strava.html for credential entry
     document.getElementById('connectStravaBtn')?.addEventListener('click', () => {
-      window.location.href = `${API_URL}/auth/strava`;
+      window.location.href = 'http://localhost:5500/Strava.html';
     });
     
     //Load profile data when page loads
