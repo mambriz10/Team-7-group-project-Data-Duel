@@ -19,7 +19,12 @@
 <body>
   <main class="page">
     <section class="card wrap" aria-label="Stats">
-      <h1>Stats</h1>
+      <div class="page-title-with-back">
+        <a href="profile.html" class="back-button" aria-label="Back to Profile">
+          <span style="font-size: 18px;">←</span>
+        </a>
+        <h1>Stats</h1>
+      </div>
       <p>Your key metrics.</p>
 
       <div id="loading" style="text-align:center; padding:20px;">
@@ -42,16 +47,12 @@
         <a class="btn primary" href="index.html">Go to Home</a>
       </div>
 
-      <div style="margin-top:16px;">
-        <a class="btn" href="profile.html">← Back to Profile</a>
-      </div>
     </section>
   </main>
 
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
       <a href="profile.html" aria-label="Profile" class="active"><div class="icon">👤</div><div>Profile</div></a>
-      <a href="settings.html" aria-label="Settings"><div class="icon">⚙️</div><div>Settings</div></a>
       <a href="index.html" aria-label="Home"><div class="icon">🏠</div><div>Home</div></a>
       <a href="social.html" aria-label="Social"><div class="icon">🫂</div><div>Social</div></a>
       <a href="routes.html" aria-label="Routes"><div class="icon">🗺️</div><div>Routes</div></a>
@@ -61,72 +62,46 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="api.js"></script>
   <script src="script.js"></script>
-  <script type = "module"> 
-    // async function loadStats() {
-    //   document.getElementById('loading').style.display = 'block';
-    //   document.getElementById('statsContent').style.display = 'none';
-      
-    //   //const stats = await fetchActivities();
-    //   console.log(stats)
-    //   if (!stats) {
-    //       document.getElementById('loading').style.display = 'none';
-    //       document.getElementById('error').style.display = 'block';
-    //       return;
-    //   }
-
-    //   document.getElementById('totalWorkouts').textContent = stats.totalWorkouts;
-    //   document.getElementById('totalDistance').textContent = `${stats.totalDistance} km`;
-    //   document.getElementById('avgPace').textContent = `${stats.avgPace} min/km`;
-      
-    //   // You can also update streak, score, improvement here if you compute them
-      
-    //   document.getElementById('loading').style.display = 'none';
-    //   document.getElementById('statsContent').style.display = 'block';
-    // }
-
-    import { db } from "/strava_user_frontend.js";
-
-    async function loadStats_new() {
+  <script type = "module">
+    import { API_URL } from './config.js';
+    
+    // Note: Stats loading should use api.getProfile() or similar
+    // For now, keeping the Supabase-based approach but removing access_token requirement
+    // This should be updated to match the groupmate's working implementation
+    async function loadStats() {
       document.getElementById('loading').style.display = 'block';
       document.getElementById('statsContent').style.display = 'none';
       document.getElementById('error').style.display = 'none';
       
-      
-      const { data: { session } } = await db.auth.getSession();
-      
-
-      const response = await fetch("http://127.0.0.1:5000/person/get-activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-                    access_token: session.access_token
-                })
-      });
-      
-      const stats = await response.json();
-      console.log(stats);
-      
-      if (!stats) {
+      try {
+        // Use the profile API endpoint which doesn't require access_token from frontend
+        const data = await api.getProfile();
+        
+        if (!data || !data.stats) {
           document.getElementById('loading').style.display = 'none';
           document.getElementById('error').style.display = 'block';
           return;
+        }
+
+        document.getElementById('totalWorkouts').textContent = data.stats.runs || 0;
+        document.getElementById('totalDistance').textContent = `${(data.stats.distance_km || 0).toFixed(2)} km`;
+        document.getElementById('avgPace').textContent = `${(data.stats.avg_pace || 0).toFixed(2)} min/km`;
+        document.getElementById('streak').textContent = data.stats.streak || 0;
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('statsContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
       }
-
-      // Access snake_case keys returned from backend
-      document.getElementById('totalWorkouts').textContent = stats.total_workouts;
-      document.getElementById('totalDistance').textContent = `${(stats.total_distance / 1000).toFixed(2)} km`; // convert meters to km if needed
-      document.getElementById('avgPace').textContent = `${(stats.average_speed).toFixed(2)} min/km`; // or compute pace from speed if needed
-
-      // Optionally update streak, badges, etc.
-      document.getElementById('streak').textContent = stats.streak;
-      // badges could be handled separately if needed
-      // e.g. stats.badges.distance, stats.badges.max_speed, etc.
-
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('statsContent').style.display = 'block';
     }
 
-    loadStats_new();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadStats);
+    } else {
+      loadStats();
+    }
   
 
   </script>

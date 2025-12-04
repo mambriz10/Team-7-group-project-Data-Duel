@@ -15,47 +15,80 @@
 </head>
 <body>
   <main class="page">
-    <section class="card" aria-label="Profile">
-      <h1>Profile</h1>
-      <p>Top-level page for your account.</p>
-
+    <section class="card profile-card" aria-label="Profile">
       <div id="loading" style="text-align:center; padding:20px;">
         <p>Loading profile...</p>
       </div>
 
       <div id="profileContent" style="display:none;">
-        <div class="row">
-          <img id="avatar" src="https://api.dicebear.com/7.x/identicon/svg?seed=runner" 
-               alt="Avatar" width="64" height="64"
-               style="border-radius:50%; border:1px solid #e5e7eb;" />
-          <div style="text-align:left;">
-            <div id="userName" style="font-weight:700;">Runner Name</div>
-            <div id="userInfo" style="color:#666; font-size:14px;">@handle • Location</div>
+        <div class="profile-header">
+          <div class="avatar-container">
+            <img id="avatar" src="https://api.dicebear.com/7.x/identicon/svg?seed=runner" 
+                 alt="Avatar" class="avatar-large" />
+            <div class="avatar-badge">🏃</div>
+          </div>
+          <div class="profile-info">
+            <h1 id="userName">Runner Name</h1>
+            <p id="userInfo" class="profile-meta">@handle • Location</p>
           </div>
         </div>
 
-        <div id="noDataWarning" style="display:none; padding:12px; margin:12px 0; background:#fef3c7; border:1px solid #fbbf24; border-radius:8px; text-align:center;">
-          <p style="margin:0; color:#92400e; font-size:14px;">⚠️ No activity data yet. <a href="index.html" style="color:#92400e; font-weight:600;">Sync your activities</a> to see your stats!</p>
+        <div id="noDataWarning" class="warning-banner" style="display:none;">
+          ⚠️ No activity data yet. <a href="index.html" style="color:inherit; font-weight:600; text-decoration:underline;">Sync your activities</a> to see your stats!
         </div>
 
-        <div class="statsline">
-          <div><div id="runs" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Runs</div></div>
-          <div><div id="distance" style="font-weight:700;">0 km</div><div style="color:#666; font-size:12px;">Distance</div></div>
-          <div><div id="pace" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Avg Pace</div></div>
-          <div><div id="score" style="font-weight:700;">0</div><div style="color:#666; font-size:12px;">Score</div></div>
-
-          
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="runs">0</div>
+            <div class="stat-label">Runs</div>
+          </div>
+          <div class="stat-card highlight">
+            <div class="stat-value" id="distance">0 km</div>
+            <div class="stat-label">Distance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="pace">0</div>
+            <div class="stat-label">Avg Pace</div>
+          </div>
+          <div class="stat-card highlight">
+            <div class="stat-value" id="score">0</div>
+            <div class="stat-label">Score</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="cadence">0</div>
+            <div class="stat-label">Avg Cadence</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="heartrate">0</div>
+            <div class="stat-label">Avg HR</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="elevation">0</div>
+            <div class="stat-label">Elevation</div>
+          </div>
         </div>
       </div>
 
       <div id="error" style="display:none; padding:20px; text-align:center;">
         <p style="color:#ef4444;">[Error] Could not load profile</p>
-        <a class="btn" href="http://localhost:5000/auth/strava">Connect Strava</a>
+        <a class="btn" id="connectStravaBtn">Connect Strava</a>
       </div>
 
-      <div class="group" role="navigation" aria-label="Profile subpages">
-        <a class="pill" href="profile-challenges.html">Challenges & Badges →</a>
-        <a class="pill" href="profile-stats.html">Stats →</a>
+      <div class="action-grid" role="navigation" aria-label="Profile subpages">
+        <a class="action-card primary" href="profile-challenges.html">
+          <div class="action-icon">🏅</div>
+          <div class="action-text">
+            <strong>Challenges & Badges</strong>
+            <span>View achievements</span>
+          </div>
+        </a>
+        <a class="action-card primary" href="profile-stats.html">
+          <div class="action-icon">📊</div>
+          <div class="action-text">
+            <strong>Detailed Stats</strong>
+            <span>See analytics</span>
+          </div>
+        </a>
       </div>
     </section>
   </main>
@@ -63,7 +96,6 @@
   <nav class="tabs" aria-label="Primary navigation">
     <div class="row">
       <a href="profile.html" aria-label="Profile" class="active"><div class="icon">Profile</div></a>
-      <a href="settings.html" aria-label="Settings"><div class="icon">Settings</div></a>
       <a href="index.html" aria-label="Home"><div class="icon">Home</div></a>
       <a href="social.html" aria-label="Social"><div class="icon">Social</div></a>
       <a href="routes.html" aria-label="Routes"><div class="icon">Routes</div></a>
@@ -77,22 +109,16 @@
     // async function loadProfile() {
     //   try {
     //     const data = await api.getProfile();
-    //     console.log('Profile data loaded:', data);
-        
+    //     console.log(data)
     //     // Update UI with data
     //     document.getElementById('userName').textContent = data.name;
-    //     document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
+    //     document.getElementById('userInfo').textContent = `@${data.username} • ${data.location}`;
     //     document.getElementById('avatar').src = data.avatar;
         
-    //     document.getElementById('runs').textContent = data.stats.runs || 0;
-    //     document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
-    //     document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
-    //     document.getElementById('score').textContent = data.stats.score || 0;
-        
-    //     // Show warning if no data
-    //     if (!data.stats.runs || data.stats.runs === 0) {
-    //       document.getElementById('noDataWarning').style.display = 'block';
-    //     }
+    //     document.getElementById('runs').textContent = data.stats.runs;
+    //     document.getElementById('distance').textContent = data.stats.distance_km + ' km';
+    //     document.getElementById('pace').textContent = data.stats.avg_pace.toFixed(1);
+    //     document.getElementById('score').textContent = data.stats.score;
         
     //     // Show content, hide loading
     //     document.getElementById('loading').style.display = 'none';
@@ -103,6 +129,42 @@
     //     document.getElementById('error').style.display = 'block';
     //   }
     // }
+    
+    // Set up Connect Strava button
+    document.getElementById('connectStravaBtn')?.addEventListener('click', () => {
+      window.location.href = `${API_URL}/auth/strava`;
+    });
+    
+    //Load profile data when page loads
+    async function loadProfile() {
+      try {
+        const data = await api.getProfile();
+        console.log('Profile data loaded:', data);
+        
+        // Update UI with data
+        document.getElementById('userName').textContent = data.name;
+        document.getElementById('userInfo').textContent = `@${data.username || 'unknown'} • ${data.location || ''}`;
+        document.getElementById('avatar').src = data.avatar;
+        
+        document.getElementById('runs').textContent = data.stats.runs || 0;
+        document.getElementById('distance').textContent = (data.stats.distance_km || 0) + ' km';
+        document.getElementById('pace').textContent = (data.stats.avg_pace || 0).toFixed(1);
+        document.getElementById('score').textContent = data.stats.score || 0;
+        
+        // Show warning if no data
+        if (!data.stats.runs || data.stats.runs === 0) {
+          document.getElementById('noDataWarning').style.display = 'block';
+        }
+        
+        // Show content, hide loading
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('profileContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
+    }
     
     // // Load on page ready
     // if (document.readyState === 'loading') {
@@ -119,13 +181,14 @@
 
     import { db } from "/strava_user_frontend.js";
     async function loadProfile_new() {
+      try {
         const { data: { session } } = await db.auth.getSession();
         if (!session) {
             console.error("No active session found!");
             return;
         }
 
-        const res = await fetch("http://127.0.0.1:5000/person/get-activities", {
+        const res = await fetch(`${API_URL}/person/get-activities`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -168,15 +231,24 @@
       // Show warning if no runs
       if (!stats.totalWorkouts || stats.totalWorkouts === 0) {
           document.getElementById('noDataWarning').style.display = 'block';
-      } else {
-          document.getElementById('noDataWarning').style.display = 'none';
       }
 
       // Show content, hide loading
       document.getElementById('loading').style.display = 'none';
       document.getElementById('profileContent').style.display = 'block';
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
     }
-    // loadProfile_new();
+    
+    // Load on page ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadProfile);
+    } else {
+      loadProfile();
+    }
   </script>
 </body>
 </html>
