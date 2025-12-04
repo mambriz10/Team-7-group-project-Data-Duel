@@ -1050,34 +1050,12 @@ def get_leaderboard():
         print(f"[ERROR] Exception in get_leaderboard: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/friends")
-def get_friends():
-    """Get friends list (placeholder - returns sample data)"""
-    try:
-        _, athlete_id = get_valid_token()
-    except Exception as e:
-        return jsonify({"error": "Not authenticated"}), 401
-    
-    # For MVP, return sample friends data
-    # In future, this would query actual friendships
-    all_users = storage.get_all_users()
-    friends = []
-    
-    for user_id, user_data in all_users.items():
-        if user_id != athlete_id:  # Don't include self
-            score_data = storage.get_score(user_id)
-            friends.append({
-                "user_id": user_id,
-                "username": user_data.get('username', 'Unknown'),
-                "avatar": user_data.get('avatar', 'https://api.dicebear.com/7.x/identicon/svg?seed=' + user_id),
-                "last_run_distance": round(user_data.get('total_distance', 0) / user_data.get('total_workouts', 1) / 1000, 1),
-                "improvement": round(score_data.get('improvement', 0), 1) if score_data else 0
-            })
-    
-    return jsonify({
-        "friends": friends[:5],  # Limit to 5 for MVP
-        "total": len(friends)
-    })
+# DEPRECATED: This endpoint is replaced by the Supabase version below
+# Keeping for backward compatibility but it should not be used
+# @app.route("/api/friends")
+# def get_friends():
+#     """DEPRECATED: Use GET /api/friends with Supabase instead"""
+#     pass
 
 # ============================================================================
 # UTILITY ENDPOINTS
@@ -1326,42 +1304,82 @@ def get_friends_list_endpoint():
     """Get current user's friends with their data"""
     print(f"\n[FRIENDS API - SUPABASE] Get friends list endpoint called")
     
-    try:
-        _, athlete_id = get_valid_token()
-        print(f"   User: {athlete_id}")
-    except Exception as e:
-        print(f"   [ERROR] Not authenticated: {str(e)}")
+    # Get access token from request (Supabase token from frontend)
+    access_token = None
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        access_token = auth_header.split(" ")[1]
+    else:
+        # Try to get from query params or body
+        access_token = request.args.get("access_token")
+        if not access_token:
+            data = request.get_json() or {}
+            access_token = data.get("access_token")
+    
+    if not access_token:
+        print(f"   [ERROR] No access token provided")
         return jsonify({"error": "Not authenticated"}), 401
     
-    # Get friend IDs from Supabase
-    friend_ids, error = supabase_get_friends(athlete_id)
+    try:
+        # Get Supabase user_id from access token
+        user = db.auth.get_user(access_token).user
+        if not user:
+            print(f"   [ERROR] Invalid access token")
+            return jsonify({"error": "Invalid access token"}), 401
+        
+        user_id = user.id  # This is the Supabase UUID
+        print(f"   User ID (Supabase UUID): {user_id}")
+    except Exception as e:
+        print(f"   [ERROR] Failed to get user from token: {str(e)}")
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Get friend IDs from Supabase (using Supabase user_id, not athlete_id)
+    friend_ids, error = supabase_get_friends(user_id)
     if error:
         print(f"   [ERROR] Failed to get friends: {error}")
         return jsonify({"error": error}), 500
     
-    all_users = storage.get_all_users()
+    # Get friend profiles from Supabase (not from storage which uses athlete_ids)
+    friend_profiles, error = get_friend_profiles(friend_ids)
+    if error:
+        print(f"   [ERROR] Failed to get friend profiles: {error}")
+        # Fallback to empty list if profile fetch fails
+        friend_profiles = []
+    
+    # Create a lookup dict by user_id
+    profiles_by_id = {profile.get('user_id'): profile for profile in (friend_profiles or [])}
     
     friends = []
     for friend_id in friend_ids:
-        user_data = all_users.get(friend_id, {})
-        score_data = storage.get_score(friend_id)
+        profile = profiles_by_id.get(friend_id, {})
+        
+        # Get user data from Supabase profile
+        username = profile.get('username', 'unknown')
+        name = profile.get('name') or profile.get('display_name', 'Unknown')
+        avatar = profile.get('avatar') or f'https://api.dicebear.com/7.x/identicon/svg?seed={friend_id}'
+        location = profile.get('location', '')
+        
+        # Get score and stats from profile
+        score = profile.get('score', 0) or 0
+        improvement = profile.get('improvement', 0) or 0
+        total_workouts = profile.get('total_workouts', 0) or 0
+        total_distance = profile.get('total_distance', 0) or 0
+        streak = profile.get('streak', 0) or 0
         
         # Calculate average run distance
-        total_workouts = user_data.get('total_workouts', 0)
-        total_distance = user_data.get('total_distance', 0)
         avg_distance = (total_distance / total_workouts / 1000) if total_workouts > 0 else 0
         
         friends.append({
-            "user_id": friend_id,
-            "name": user_data.get('name', 'Unknown'),
-            "username": user_data.get('username', 'unknown'),
-            "avatar": user_data.get('avatar', f'https://api.dicebear.com/7.x/identicon/svg?seed={friend_id}'),
-            "location": user_data.get('location', ''),
+            "user_id": friend_id,  # This is now a Supabase UUID
+            "name": name,
+            "username": username,
+            "avatar": avatar,
+            "location": location,
             "total_workouts": total_workouts,
             "last_run_distance": round(avg_distance, 1),
-            "improvement": round(score_data.get('improvement', 0), 1) if score_data else 0,
-            "streak": user_data.get('streak', 0),
-            "score": score_data.get('score', 0) if score_data else 0
+            "improvement": round(improvement, 1),
+            "streak": streak,
+            "score": score
         })
     
     print(f"   [SUCCESS] Returning {len(friends)} friends")

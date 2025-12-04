@@ -133,7 +133,7 @@
   <script type="module">
   import { API_URL } from './config.js';
   import { db } from '/strava_user_frontend.js';
-  import { getAccessToken, initializeAuth } from './authHelper.js';
+  import { getAccessToken, initializeAuth } from '/authHelper.js';
   
   (function() {
     const BACKEND_URL = API_URL;
@@ -160,7 +160,12 @@
         friendsList.innerHTML = '';
         friendsEmpty.style.display = 'none';
 
-        const response = await fetch(`${BACKEND_URL}/api/friends`);
+        const access_token = await getAccessToken();
+        const response = await fetch(`${BACKEND_URL}/api/friends`, {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        });
         if (!response.ok) throw new Error('Failed to load friends');
         
         const data = await response.json();
@@ -422,7 +427,12 @@
       
       // Load friends for league invites
       try {
-        const response = await fetch(`${BACKEND_URL}/api/friends`);
+        const access_token = await getAccessToken();
+        const response = await fetch(`${BACKEND_URL}/api/friends`, {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        });
         const data = await response.json();
         
         const friendsListDiv = document.getElementById('leagueFriendsList');
