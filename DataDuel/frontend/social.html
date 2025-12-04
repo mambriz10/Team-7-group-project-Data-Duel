@@ -133,23 +133,13 @@
   <script type="module">
   import { API_URL } from './config.js';
   import { db } from '/strava_user_frontend.js';
+  import { getAccessToken, initializeAuth } from './authHelper.js';
   
   (function() {
     const BACKEND_URL = API_URL;
     
-    // Helper to get access token
-    async function getAccessToken() {
-      try {
-        const { data: { session } } = await db.auth.getSession();
-        if (!session) {
-          throw new Error('No active session');
-        }
-        return session.access_token;
-      } catch (error) {
-        console.error('Error getting access token:', error);
-        throw error;
-      }
-    }
+    // Initialize auth system (handles automatic token refresh)
+    initializeAuth();
     
     // DOM Elements
     const loadingDiv = document.getElementById('loading');
