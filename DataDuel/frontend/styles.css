@@ -508,6 +508,10 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
   object-fit: cover;
 }
 
+.default-avatar {
+  object-fit: none;
+}
+
 .avatar-badge {
   position: absolute;
   bottom: -4px;

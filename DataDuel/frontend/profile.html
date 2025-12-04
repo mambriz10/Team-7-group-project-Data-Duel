@@ -23,8 +23,9 @@
       <div id="profileContent" style="display:none;">
         <div class="profile-header">
           <div class="avatar-container">
-            <img id="avatar" src="https://api.dicebear.com/7.x/identicon/svg?seed=runner" 
-                 alt="Avatar" class="avatar-large" />
+            <div id="avatar" class="avatar-large default-avatar" style="background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold;">
+              👤
+            </div>
             <div class="avatar-badge">🏃</div>
           </div>
           <div class="profile-info" style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -243,8 +244,7 @@
       document.getElementById('userName').textContent = stats.username || 'Unknown';
       // You can add location if available in your backend
       document.getElementById('userInfo').textContent = `@${stats.username || 'unknown'}`;
-      // If you have an avatar URL, set it; else, default image
-      document.getElementById('avatar').src = data.avatar || '/default-avatar.png';
+      // Avatar is always the default icon - no need to update it
 
       // Update stats
       document.getElementById('totalWorkouts').textContent = stats.totalWorkouts || 0;
