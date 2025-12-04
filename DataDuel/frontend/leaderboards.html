@@ -31,10 +31,11 @@
         </a>
         <h1 style="color: var(--brand);">Leaderboards</h1>
       </div>
-      <p>Improvement-based scoring leaderboard</p>
+      <p id="leaderboardDescription">Global leaderboard ranked by score</p>
 
       <div class="toolbar" role="group" aria-label="Leaderboard filters">
-        <span class="pill" aria-current="true">All Time</span>
+        <span class="pill" id="globalPill" aria-current="true">Global</span>
+        <span class="pill" id="leaguePill" style="display:none;">League</span>
       </div>
 
       <div id="loading" style="text-align:center; padding:20px;">
@@ -44,13 +45,12 @@
       <div id="leaderboardContent" style="display:none;">
         <table class="lb-table" aria-describedby="lb-caption">
           <caption id="lb-caption" style="text-align:left; margin:8px 0 12px 0;">
-            Improvement-based scoring
+            Score-based ranking
           </caption>
           <thead>
             <tr>
               <th class="pos">#</th>
-              <th>Name</th>
-              <th>Improvement</th>
+              <th>Username</th>
               <th>Score</th>
             </tr>
           </thead>
@@ -81,6 +81,10 @@
   <script type="module" src="api.js"></script>
   <script type="module">
     import { API_URL } from './config.js';
+    import { db } from '/strava_user_frontend.js';
+    
+    // Make db available globally for the loadLeaderboard function
+    window.db = db;
     
     // Set up Connect Strava button
     document.addEventListener('DOMContentLoaded', () => {
@@ -94,7 +98,31 @@
     // Load leaderboard data when page loads
     async function loadLeaderboard() {
       try {
-        const data = await api.getLeaderboard();
+        // Check if viewing a specific league
+        const urlParams = new URLSearchParams(window.location.search);
+        const leagueId = urlParams.get('league_id');
+        
+        let data;
+        let isLeague = false;
+        
+        if (leagueId) {
+          // Load league leaderboard
+          isLeague = true;
+          document.getElementById('globalPill').style.display = 'none';
+          document.getElementById('leaguePill').style.display = 'inline-block';
+          document.getElementById('leaguePill').setAttribute('aria-current', 'true');
+          document.getElementById('globalPill').removeAttribute('aria-current');
+          
+          data = await api.getLeagueLeaderboard(leagueId);
+          document.getElementById('leaderboardDescription').textContent = 
+            `League: ${data.league_name || 'League'} leaderboard`;
+        } else {
+          // Load global leaderboard
+          data = await api.getLeaderboard();
+          document.getElementById('leaderboardDescription').textContent = 
+            'Global leaderboard ranked by score';
+        }
+        
         const tbody = document.getElementById('leaderboardBody');
         
         // Clear existing rows
@@ -103,8 +131,10 @@
         // Get current user (if authenticated)
         let currentUserId = null;
         try {
-          const status = await api.getStatus();
-          currentUserId = status.athlete_id;
+          const { data: { session } } = await db.auth.getSession();
+          if (session && session.user) {
+            currentUserId = session.user.id;
+          }
         } catch (e) {
           console.log('Not authenticated');
         }
@@ -118,10 +148,14 @@
             row.classList.add('you');
           }
           
+          // Make username clickable to view profile (using user_id)
+          const usernameCell = entry.user_id 
+            ? `<td class="name-cell" style="cursor: pointer;" onclick="window.location.href='profile.html?user_id=${entry.user_id}'">${entry.username}</td>`
+            : `<td class="name-cell">${entry.username}</td>`;
+          
           row.innerHTML = `
             <td class="pos">${entry.rank}</td>
-            <td class="name-cell">${entry.username}</td>
-            <td class="improvement-cell">+${entry.improvement}%</td>
+            ${usernameCell}
             <td class="score-cell">${entry.score}</td>
           `;
           

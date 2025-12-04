@@ -20,7 +20,7 @@ from datetime import datetime
 from supabase_stravaDB.strava_user import (
     # User & credentials
     add_member_to_leaderboard, insert_user_profile, fetch_person_response, save_credentials_new, save_credentials, 
-    insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET,
+    insert_person_response, load_credentials_from_supabase, CLIENT_ID, CLIENT_SECRET, db,
     # Friends system (Supabase)
     send_friend_request as supabase_send_request,
     accept_friend_request as supabase_accept_request,
@@ -31,8 +31,12 @@ from supabase_stravaDB.strava_user import (
     get_sent_requests as supabase_get_sent,
     get_friend_status as supabase_get_status,
     get_friend_profiles, search_users_by_name,
+    # Leaderboards & Leagues
+    create_leaderboard, get_global_leaderboard, get_league_leaderboard, get_league_info,
+    get_league_challenges, update_league_challenges,
+    fetch_user_leaderboards, delete_leaderboard,
     # Legacy (deprecated)
-    get_friends_user, add_friend, create_leaderboard
+    get_friends_user, add_friend
 )
 
 
@@ -561,8 +565,10 @@ def create_leaderboard_route():
 
 @app.route("/leaderboard/add_member", methods=["POST"])
 def add_member_route():
+    """Add a member to an existing league. Only the creator can add members."""
+    print(f"\n[API] Add member to league requested")
+    
     data = request.get_json()
-
     access_token = data.get("access_token")
     leaderboard_id = data.get("leaderboard_id")
     user_id = data.get("user_id")
@@ -573,8 +579,40 @@ def add_member_route():
     result, error = add_member_to_leaderboard(access_token, leaderboard_id, user_id)
 
     if error:
+        print(f"[ERROR] Failed to add member: {error}")
         return jsonify({"error": error}), 400
 
+    print(f"[SUCCESS] Member added to league")
+    return jsonify(result), 200
+
+
+@app.route("/leaderboard/<leaderboard_id>/delete", methods=["DELETE", "POST"])
+def delete_leaderboard_route(leaderboard_id):
+    """Delete a league. Only the creator can delete it."""
+    print(f"\n[API] Delete league requested for league {leaderboard_id}")
+    
+    # Support both DELETE and POST methods (some clients prefer POST)
+    if request.method == "POST":
+        data = request.get_json() or {}
+        access_token = data.get("access_token")
+    else:
+        # For DELETE, get token from header or query param
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ")[1]
+        else:
+            access_token = request.args.get("access_token")
+    
+    if not access_token:
+        return jsonify({"error": "Missing access token"}), 400
+    
+    result, error = delete_leaderboard(access_token, leaderboard_id)
+    
+    if error:
+        print(f"[ERROR] Failed to delete league: {error}")
+        return jsonify({"error": error}), 400
+    
+    print(f"[SUCCESS] League deleted")
     return jsonify(result), 200
 
 @app.route("/leaderboards/my", methods=["POST"])
@@ -591,6 +629,132 @@ def get_user_leaderboards_route():
         return jsonify({"error": error}), 400
 
     return jsonify(leaderboards), 200
+
+
+# ============================================================================
+# LEAGUE ENDPOINTS - CUSTOM LEAGUES & CHALLENGES
+# ============================================================================
+
+@app.route("/api/league/<league_id>/leaderboard", methods=["GET"])
+def get_league_leaderboard_route(league_id):
+    """
+    Get leaderboard for a specific league.
+    Shows all members of the league ranked by score.
+    """
+    print(f"\n[API] League leaderboard requested for league {league_id}")
+    
+    try:
+        leaderboard, error = get_league_leaderboard(league_id)
+        
+        if error:
+            print(f"[ERROR] Failed to fetch league leaderboard: {error}")
+            return jsonify({"error": error}), 500
+        
+        # Get league info
+        league_info, info_error = get_league_info(league_id)
+        
+        response_data = {
+            "league_id": league_id,
+            "leaderboard": leaderboard,
+            "total_members": len(leaderboard)
+        }
+        
+        if league_info and not info_error:
+            response_data["league_name"] = league_info.get("name")
+            # Note: description not in base schema, only if added via migration
+        
+        print(f"[SUCCESS] Returning leaderboard with {len(leaderboard)} members")
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"[ERROR] Exception in get_league_leaderboard_route: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/league/<league_id>/info", methods=["GET"])
+def get_league_info_route(league_id):
+    """
+    Get information about a specific league.
+    """
+    print(f"\n[API] League info requested for league {league_id}")
+    
+    try:
+        league_info, error = get_league_info(league_id)
+        
+        if error:
+            print(f"[ERROR] Failed to fetch league info: {error}")
+            return jsonify({"error": error}), 404
+        
+        print(f"[SUCCESS] Returning league info")
+        return jsonify(league_info)
+        
+    except Exception as e:
+        print(f"[ERROR] Exception in get_league_info_route: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/league/<league_id>/challenges", methods=["GET"])
+def get_league_challenges_route(league_id):
+    """
+    Get the 3 simple challenges for a league (format like challenges.py).
+    Returns: first_challenge, second_challenge, third_challenge (booleans) and descriptions
+    """
+    print(f"\n[API] League challenges requested for league {league_id}")
+    
+    try:
+        challenges, error = get_league_challenges(league_id)
+        
+        if error:
+            print(f"[ERROR] Failed to fetch challenges: {error}")
+            return jsonify({"error": error}), 500
+        
+        print(f"[SUCCESS] Returning challenges")
+        return jsonify({
+            "league_id": league_id,
+            **challenges
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Exception in get_league_challenges_route: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/league/<league_id>/challenges/update", methods=["POST"])
+def update_league_challenges_route(league_id):
+    """
+    Update league challenges. Only league creator can update.
+    Simple format: first_challenge, second_challenge, third_challenge (booleans) and descriptions
+    """
+    print(f"\n[API] Update challenges requested for league {league_id}")
+    
+    try:
+        data = request.get_json()
+        access_token = data.get("access_token")
+        
+        if not access_token:
+            return jsonify({"error": "Missing access token"}), 400
+        
+        result, error = update_league_challenges(
+            access_token=access_token,
+            league_id=league_id,
+            first_challenge=data.get("first_challenge"),
+            second_challenge=data.get("second_challenge"),
+            third_challenge=data.get("third_challenge"),
+            first_description=data.get("first_description"),
+            second_description=data.get("second_description"),
+            third_description=data.get("third_description")
+        )
+        
+        if error:
+            print(f"[ERROR] Failed to update challenges: {error}")
+            return jsonify({"error": error}), 400
+        
+        print(f"[SUCCESS] Challenges updated")
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[ERROR] Exception in update_league_challenges_route: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/sync", methods=["POST", "GET"])
@@ -851,36 +1015,31 @@ def get_profile():
 
 @app.route("/api/leaderboard")
 def get_leaderboard():
-    """Get leaderboard data"""
-    all_scores = storage.get_all_scores()
-    all_users = storage.get_all_users()
+    """
+    Get global leaderboard - ALL users ranked by score (simple format).
+    Returns: rank, user_id, username, name, score
+    """
+    print(f"\n[API] Global leaderboard requested")
     
-    # Build leaderboard entries
-    leaderboard = []
-    for user_id, score_data in all_scores.items():
-        user_data = all_users.get(user_id, {})
+    try:
+        # Get limit from query params (default 100)
+        limit = request.args.get("limit", type=int) or 100
         
-        leaderboard.append({
-            "user_id": user_id,
-            "username": score_data.get('username', user_data.get('username', 'Unknown')),
-            "score": score_data.get('score', 0),
-            "runs": score_data.get('total_workouts', 0),
-            "improvement": round(score_data.get('improvement', 0), 1),
-            "streak": score_data.get('streak', 0)
+        leaderboard, error = get_global_leaderboard(limit=limit)
+        
+        if error:
+            print(f"[ERROR] Failed to fetch leaderboard: {error}")
+            return jsonify({"error": error}), 500
+        
+        print(f"[SUCCESS] Returning {len(leaderboard)} users")
+        return jsonify({
+            "leaderboard": leaderboard,
+            "total_users": len(leaderboard)
         })
-    
-    # Sort by score (highest first)
-    leaderboard.sort(key=lambda x: x['score'], reverse=True)
-    
-    # Add ranks
-    for i, entry in enumerate(leaderboard):
-        entry['rank'] = i + 1
-    
-    return jsonify({
-        "leaderboard": leaderboard,
-        "total_users": len(leaderboard),
-        "updated_at": time.time()
-    })
+        
+    except Exception as e:
+        print(f"[ERROR] Exception in get_leaderboard: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/friends")
 def get_friends():

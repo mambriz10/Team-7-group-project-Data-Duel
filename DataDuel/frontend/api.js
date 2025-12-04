@@ -71,6 +71,53 @@ class DataDuelAPI {
     }
 
     // ========================================================================
+    // Leagues
+    // ========================================================================
+
+    async getLeagueLeaderboard(leagueId) {
+        return this._fetch(`/api/league/${leagueId}/leaderboard`);
+    }
+
+    async getLeagueInfo(leagueId) {
+        return this._fetch(`/api/league/${leagueId}/info`);
+    }
+
+    async deleteLeague(leagueId, accessToken) {
+        return this._fetch(`/leaderboard/${leagueId}/delete`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ access_token: accessToken })
+        });
+    }
+
+    async addMemberToLeague(leagueId, userId, accessToken) {
+        return this._fetch('/leaderboard/add_member', {
+            method: 'POST',
+            body: JSON.stringify({
+                access_token: accessToken,
+                leaderboard_id: leagueId,
+                user_id: userId
+            })
+        });
+    }
+
+    async getLeagueChallenges(leagueId) {
+        return this._fetch(`/api/league/${leagueId}/challenges`);
+    }
+
+    async updateLeagueChallenges(leagueId, accessToken, challengeData) {
+        return this._fetch(`/api/league/${leagueId}/challenges/update`, {
+            method: 'POST',
+            body: JSON.stringify({
+                access_token: accessToken,
+                ...challengeData
+            })
+        });
+    }
+
+    // ========================================================================
     // Friends
     // ========================================================================
 

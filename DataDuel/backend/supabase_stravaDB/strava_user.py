@@ -2,6 +2,8 @@
 
 import json
 import os
+import time
+from datetime import datetime
 from supabase import create_client
 
 CREDENTIALS_FILE = "strava_credentials.json"
@@ -582,7 +584,7 @@ def create_leaderboard(user_access_token: str, name: str, metric: str, members: 
     except Exception as e:
         return None, str(e)
 
-def add_member_to_leaderboard(access_token: str, leaderboard_id: int, user_id_to_add: str):
+def add_member_to_leaderboard(access_token: str, leaderboard_id, user_id_to_add: str):
         """
         Adds a member to a leaderboard.
         Handles:
@@ -633,13 +635,75 @@ def add_member_to_leaderboard(access_token: str, leaderboard_id: int, user_id_to
             return None, str(e)
 
 
+def delete_leaderboard(access_token: str, leaderboard_id):
+    """
+    Delete a leaderboard. Only the creator can delete it.
+    This will also delete all associated members and challenges (via CASCADE).
+    
+    Args:
+        access_token: Access token of the user attempting to delete
+        leaderboard_id: UUID of the leaderboard to delete
+    
+    Returns: (success_data, error_message)
+    """
+    print(f"[SUPABASE LEADERBOARD] Deleting league {leaderboard_id}")
+    
+    try:
+        # Validate user / token
+        caller = db.auth.get_user(access_token).user
+        if not caller:
+            return None, "Invalid access token"
+        
+        caller_id = caller.id
+        
+        # Check leaderboard exists and get creator
+        lb = (
+            db.table("leaderboards")
+            .select("creator_id, name")
+            .eq("id", leaderboard_id)
+            .maybe_single()
+            .execute()
+        )
+        
+        if not lb.data:
+            return None, "Leaderboard does not exist"
+        
+        creator_id = lb.data[0]["creator_id"]
+        league_name = lb.data[0].get("name", "League")
+        
+        # Only creator may delete
+        if creator_id != caller_id:
+            return None, "Only the league creator can delete the league"
+        
+        # Delete the leaderboard (CASCADE will delete members and challenges)
+        db.table("leaderboards").delete().eq("id", leaderboard_id).execute()
+        
+        print(f"[SUPABASE LEADERBOARD] Successfully deleted league: {league_name}")
+        return {"success": True, "message": f"League '{league_name}' deleted successfully"}, None
+        
+    except Exception as e:
+        print(f"[SUPABASE LEADERBOARD] Error deleting league: {str(e)}")
+        return None, str(e)
+
+
 def fetch_user_leaderboards(access_token):
+    """
+    Fetch all leaderboards (leagues) for a user - both owned and joined.
+    Uses only columns from leaderboards schema: id, name, creator_id, metric, created_at
+    Returns: ({"owned": [...], "joined": [...]}, error_message)
+    """
     user = db.auth.get_user(access_token).user
     if not user:
         return None, "Invalid access token"
 
-    # Fetch owned leaderboards
-    owned_resp = db.table("leaderboards").select("*").eq("creator_id", user.id).execute()
+    # Fetch owned leaderboards - using only schema columns
+    # Schema shows: id, name, creator_id, metric, created_at
+    owned_resp = (
+        db.table("leaderboards")
+        .select("id, name, creator_id, metric, created_at")
+        .eq("creator_id", user.id)
+        .execute()
+    )
     owned = []
     for lb in owned_resp.data:
         # Count members
@@ -651,7 +715,13 @@ def fetch_user_leaderboards(access_token):
     joined_resp = db.table("leaderboard_members").select("leaderboard_id").eq("user_id", user.id).execute()
     joined = []
     for join in joined_resp.data:
-        lb_resp = db.table("leaderboards").select("*").eq("id", join["leaderboard_id"]).execute()
+        # Using only schema columns
+        lb_resp = (
+            db.table("leaderboards")
+            .select("id, name, creator_id, metric, created_at")
+            .eq("id", join["leaderboard_id"])
+            .execute()
+        )
         if lb_resp.data:
             lb_data = lb_resp.data[0]
             # Count members
@@ -660,6 +730,268 @@ def fetch_user_leaderboards(access_token):
             joined.append(lb_data)
 
     return {"owned": owned, "joined": joined}, None
+
+
+# =============================================================================
+# GLOBAL LEADERBOARD - ALL USERS
+# =============================================================================
+
+def get_global_leaderboard(limit: int = 100):
+    """
+    Get global leaderboard of ALL users ranked by score (simple format).
+    Uses only columns from user_strava table: user_id, username, score
+    Returns: (leaderboard_list, error_message)
+    """
+    print(f"[SUPABASE LEADERBOARD] Fetching global leaderboard (limit: {limit})")
+    
+    try:
+        # Fetch all users with their scores from user_strava, sorted by score
+        # Using only columns shown in schema: user_id, username, score
+        response = (
+            db.table("user_strava")
+            .select("user_id, username, score")
+            .not_.is_("score", "null")
+            .order("score", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        
+        leaderboard = []
+        for idx, user in enumerate(response.data, start=1):
+            leaderboard.append({
+                "rank": idx,
+                "user_id": user.get("user_id"),
+                "username": user.get("username", "unknown"),
+                "score": int(user.get("score", 0))  # score is int4 in schema
+            })
+        
+        print(f"[SUPABASE LEADERBOARD] Found {len(leaderboard)} users")
+        return leaderboard, None
+        
+    except Exception as e:
+        print(f"[SUPABASE LEADERBOARD] Error: {str(e)}")
+        return None, str(e)
+
+
+# =============================================================================
+# LEAGUE LEADERBOARD - SPECIFIC LEAGUE
+# =============================================================================
+
+def get_league_leaderboard(league_id):
+    """
+    Get leaderboard for a specific league (custom league).
+    Returns members ranked by score (simple format).
+    Uses only columns from schema: user_id, username, score
+    Args:
+        league_id: UUID string (from leaderboards.id)
+    Returns: (leaderboard_list, error_message)
+    """
+    print(f"[SUPABASE LEADERBOARD] Fetching league leaderboard for league {league_id}")
+    
+    try:
+        # Get all members of this league using leaderboard_members table
+        # Schema shows: id, leaderboard_id, user_id, joined_at
+        # leaderboard_id is UUID (matches leaderboards.id)
+        members_resp = (
+            db.table("leaderboard_members")
+            .select("user_id")
+            .eq("leaderboard_id", league_id)
+            .execute()
+        )
+        
+        if not members_resp.data:
+            return [], None
+        
+        user_ids = [member["user_id"] for member in members_resp.data]
+        
+        # Fetch user data for all members, sorted by score
+        # Using only columns from user_strava schema: user_id, username, score
+        users_resp = (
+            db.table("user_strava")
+            .select("user_id, username, score")
+            .in_("user_id", user_ids)
+            .not_.is_("score", "null")
+            .order("score", desc=True)
+            .execute()
+        )
+        
+        leaderboard = []
+        for idx, user in enumerate(users_resp.data, start=1):
+            leaderboard.append({
+                "rank": idx,
+                "user_id": user.get("user_id"),
+                "username": user.get("username", "unknown"),
+                "score": int(user.get("score", 0))  # score is int4 in schema
+            })
+        
+        print(f"[SUPABASE LEADERBOARD] Found {len(leaderboard)} members in league")
+        return leaderboard, None
+        
+    except Exception as e:
+        print(f"[SUPABASE LEADERBOARD] Error: {str(e)}")
+        return None, str(e)
+
+
+def get_league_info(league_id):
+    """
+    Get information about a specific league.
+    Uses only columns from leaderboards schema: id, name, creator_id, metric, created_at
+    Args:
+        league_id: UUID string (from leaderboards.id)
+    Returns: (league_data, error_message)
+    """
+    print(f"[SUPABASE LEADERBOARD] Fetching league info for league {league_id}")
+    
+    try:
+        # Get league details - using only columns from schema
+        # Schema shows: id, name, creator_id, metric, created_at
+        league_resp = (
+            db.table("leaderboards")
+            .select("id, name, creator_id, metric, created_at")
+            .eq("id", league_id)
+            .maybe_single()
+            .execute()
+        )
+        
+        if not league_resp.data:
+            return None, "League not found"
+        
+        league = league_resp.data
+        
+        # Count members using leaderboard_members table
+        # Schema shows: id, leaderboard_id, user_id, joined_at
+        members_resp = (
+            db.table("leaderboard_members")
+            .select("user_id")
+            .eq("leaderboard_id", league_id)
+            .execute()
+        )
+        
+        league["members_count"] = len(members_resp.data)
+        league["member_ids"] = [m["user_id"] for m in members_resp.data]
+        
+        return league, None
+        
+    except Exception as e:
+        print(f"[SUPABASE LEADERBOARD] Error: {str(e)}")
+        return None, str(e)
+
+
+# =============================================================================
+# LEAGUE CHALLENGES (Simple Format - Like challenges.py)
+# =============================================================================
+
+def get_league_challenges(league_id):
+    """
+    Get the 3 simple challenges for a league.
+    Returns format like challenges.py: first_challenge, second_challenge, third_challenge
+    Challenge columns are added via migration (not in base schema diagram)
+    Args:
+        league_id: UUID string (from leaderboards.id)
+    Returns: (challenges_dict, error_message)
+    """
+    print(f"[SUPABASE LEAGUE] Fetching challenges for league {league_id}")
+    
+    try:
+        # Get league with challenge data
+        # Base schema: id, name, creator_id, metric, created_at
+        # Challenge columns added via migration: first_challenge, second_challenge, third_challenge, etc.
+        league_resp = (
+            db.table("leaderboards")
+            .select("id, first_challenge, second_challenge, third_challenge, first_description, second_description, third_description")
+            .eq("id", league_id)
+            .maybe_single()
+            .execute()
+        )
+        
+        if not league_resp.data:
+            return None, "League not found"
+        
+        league = league_resp.data
+        
+        # Return simple challenge format (defaults if not set)
+        challenges = {
+            "first_challenge": league.get("first_challenge", False),
+            "second_challenge": league.get("second_challenge", False),
+            "third_challenge": league.get("third_challenge", False),
+            "first_description": league.get("first_description", "Run 3 times this week"),
+            "second_description": league.get("second_description", "Total distance ≥ 20 km"),
+            "third_description": league.get("third_description", "Set 1 segment PR")
+        }
+        
+        print(f"[SUPABASE LEAGUE] Returning simple challenges format")
+        return challenges, None
+        
+    except Exception as e:
+        print(f"[SUPABASE LEAGUE] Error fetching challenges: {str(e)}")
+        return None, str(e)
+
+
+def update_league_challenges(access_token: str, league_id, 
+                            first_challenge: bool = None,
+                            second_challenge: bool = None,
+                            third_challenge: bool = None,
+                            first_description: str = None,
+                            second_description: str = None,
+                            third_description: str = None):
+    """
+    Update league challenges. Only league creator can update.
+    Returns: (success_data, error_message)
+    """
+    print(f"[SUPABASE LEAGUE] Updating challenges for league {league_id}")
+    
+    try:
+        # Verify user is the league creator
+        user = db.auth.get_user(access_token).user
+        if not user:
+            return None, "Invalid access token"
+        
+        league_resp = (
+            db.table("leaderboards")
+            .select("creator_id")
+            .eq("id", league_id)
+            .maybe_single()
+            .execute()
+        )
+        
+        if not league_resp.data:
+            return None, "League not found"
+        
+        if league_resp.data["creator_id"] != user.id:
+            return None, "Only the league creator can update challenges"
+        
+        # Build update data
+        update_data = {}
+        if first_challenge is not None:
+            update_data["first_challenge"] = first_challenge
+        if second_challenge is not None:
+            update_data["second_challenge"] = second_challenge
+        if third_challenge is not None:
+            update_data["third_challenge"] = third_challenge
+        if first_description is not None:
+            update_data["first_description"] = first_description
+        if second_description is not None:
+            update_data["second_description"] = second_description
+        if third_description is not None:
+            update_data["third_description"] = third_description
+        
+        if not update_data:
+            return None, "No fields to update"
+        
+        # Update league
+        update_resp = (
+            db.table("leaderboards")
+            .update(update_data)
+            .eq("id", league_id)
+            .execute()
+        )
+        
+        print(f"[SUPABASE LEAGUE] Challenges updated successfully")
+        return {"success": True, "league": update_resp.data[0] if update_resp.data else None}, None
+        
+    except Exception as e:
+        print(f"[SUPABASE LEAGUE] Error updating challenges: {str(e)}")
+        return None, str(e)
 
 
 

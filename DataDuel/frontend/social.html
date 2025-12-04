@@ -133,9 +133,24 @@
   <script src="script.js"></script>
   <script type="module">
   import { API_URL } from './config.js';
+  import { db } from '/strava_user_frontend.js';
   
   (function() {
     const BACKEND_URL = API_URL;
+    
+    // Helper to get access token
+    async function getAccessToken() {
+      try {
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) {
+          throw new Error('No active session');
+        }
+        return session.access_token;
+      } catch (error) {
+        console.error('Error getting access token:', error);
+        throw error;
+      }
+    }
     
     // DOM Elements
     const loadingDiv = document.getElementById('loading');
@@ -444,57 +459,81 @@
       leagueDialog.close();
     });
 
-    // League Management (Local Storage)
-    const KEY = 'dd_leagues_v2';
-
-    function loadLeagues() {
+    // League Management (Backend API)
+    async function loadLeagues() {
       try {
-        return JSON.parse(localStorage.getItem(KEY)) || [];
-      } catch (e) {
+        const access_token = await getAccessToken();
+        const response = await fetch(`${BACKEND_URL}/leaderboards/my`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to load leagues');
+        }
+        
+        const data = await response.json();
+        // Combine owned and joined leagues
+        const allLeagues = [...(data.owned || []), ...(data.joined || [])];
+        return allLeagues;
+      } catch (error) {
+        console.error('Error loading leagues:', error);
         return [];
       }
     }
 
-    function saveLeagues(leagues) {
-      localStorage.setItem(KEY, JSON.stringify(leagues));
-    }
-
-    function renderLeagues() {
-      const leagues = loadLeagues();
-    const list = document.getElementById('league-list');
-    const emptyMsg = document.getElementById('league-empty');
-
-      list.innerHTML = '';
+    async function renderLeagues() {
+      const list = document.getElementById('league-list');
+      const emptyMsg = document.getElementById('league-empty');
       
-      if (!leagues.length) {
-        emptyMsg.style.display = 'block';
-        return;
-      }
+      list.innerHTML = '<p class="meta">Loading leagues...</p>';
       
-      emptyMsg.style.display = 'none';
+      try {
+        const leagues = await loadLeagues();
+        
+        // Get current user ID for creator checks
+        const currentUserId = await getCurrentUserId();
+        
+        list.innerHTML = '';
+        
+        if (!leagues.length) {
+          emptyMsg.style.display = 'block';
+          return;
+        }
+        
+        emptyMsg.style.display = 'none';
 
-      leagues.forEach((lg, i) => {
-        const card = document.createElement('div');
-        card.className = 'item';
-        card.innerHTML = `
-          <div>
-            <div style="font-weight:700;">${lg.name}</div>
-            <div class="meta">
-              Duration: ${lg.duration} week${lg.duration>1?'s':''} • 
-              Size: ${lg.size} • 
-              Invited: ${lg.inviteCount || 0} friends
+        leagues.forEach((lg) => {
+          const card = document.createElement('div');
+          card.className = 'item';
+          
+          // Check if current user is creator (for delete and add member buttons)
+          const isCreator = currentUserId && lg.creator_id === currentUserId;
+          
+          card.innerHTML = `
+            <div>
+              <div style="font-weight:700;">${lg.name}</div>
+              <div class="meta">
+                Metric: ${lg.metric || 'score'} • 
+                Members: ${lg.members_count || 0}
+              </div>
             </div>
-          </div>
-          <div class="row-actions">
-            <a class="btn" href="leaderboards.html">View</a>
-            <button class="btn" onclick="deleteLeague(${i})">Delete</button>
-          </div>
-        `;
-        list.appendChild(card);
-      });
+            <div class="row-actions">
+              <a class="btn" href="leaderboards.html?league_id=${lg.id}">View</a>
+              ${isCreator ? `<button class="btn" onclick="addMemberToLeague('${lg.id}', '${lg.name}')">Add Member</button>` : ''}
+              ${isCreator ? `<button class="btn" onclick="deleteLeague('${lg.id}', '${lg.name}')">Delete</button>` : ''}
+            </div>
+          `;
+          list.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Error rendering leagues:', error);
+        list.innerHTML = '<p style="color:#ef4444;">Failed to load leagues</p>';
+      }
     }
 
-    leagueForm.addEventListener('submit', (e) => {
+    leagueForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const name = document.getElementById('leagueName').value.trim();
@@ -514,28 +553,214 @@
         return;
       }
 
-      const leagues = loadLeagues();
-      leagues.push({
-        name,
-        duration,
-        size,
-        invites,
-        inviteCount: invites.length,
-        createdAt: Date.now()
-      });
-      saveLeagues(leagues);
-
-      leagueForm.reset();
-      leagueDialog.close();
-      renderLeagues();
+      try {
+        // Get access token
+        const access_token = await getAccessToken();
+        
+        // Get current user ID
+        const { data: { user } } = await db.auth.getUser(access_token);
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
+        // Build members list (includes creator + invites)
+        const members = [user.id, ...invites];
+        
+        // Create league via backend API
+        const response = await fetch(`${BACKEND_URL}/leaderboard/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token,
+            name,
+            metric: 'score', // Default to score-based ranking
+            members
+          })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create league');
+        }
+        
+        const result = await response.json();
+        alert(`League "${name}" created successfully!`);
+        
+        leagueForm.reset();
+        leagueDialog.close();
+        renderLeagues();
+      } catch (error) {
+        console.error('Error creating league:', error);
+        alert(error.message || 'Failed to create league. Please try again.');
+      }
     });
 
-    window.deleteLeague = function(idx) {
-      if (!confirm('Delete this league?')) return;
-      const leagues = loadLeagues();
-      leagues.splice(idx, 1);
-      saveLeagues(leagues);
-      renderLeagues();
+    // Get current user ID for creator checks
+    async function getCurrentUserId() {
+      try {
+        const access_token = await getAccessToken();
+        const { data: { user } } = await db.auth.getUser(access_token);
+        return user ? user.id : null;
+      } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
+      }
+    }
+
+    // Delete League
+    window.deleteLeague = async function(leagueId, leagueName) {
+      if (!confirm(`Are you sure you want to delete "${leagueName}"? This action cannot be undone.`)) {
+        return;
+      }
+      
+      try {
+        const access_token = await getAccessToken();
+        const response = await fetch(`${BACKEND_URL}/leaderboard/${leagueId}/delete`, {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${access_token}`
+          },
+          body: JSON.stringify({ access_token })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to delete league');
+        }
+        
+        const result = await response.json();
+        alert(result.message || 'League deleted successfully!');
+        renderLeagues();
+      } catch (error) {
+        console.error('Error deleting league:', error);
+        alert(error.message || 'Failed to delete league. Please try again.');
+      }
+    };
+
+    // Add Member to League
+    window.addMemberToLeague = async function(leagueId, leagueName) {
+      // Create a dialog for adding members
+      const dialog = document.createElement('dialog');
+      dialog.innerHTML = `
+        <div style="padding:20px; min-width:400px;">
+          <h3 style="margin:0 0 16px;">Add Member to "${leagueName}"</h3>
+          
+          <div id="addMemberFriendsList" style="max-height:300px; overflow-y:auto; margin-bottom:16px;">
+            <p class="meta">Loading friends...</p>
+          </div>
+          
+          <div style="text-align:right; margin-top:16px;">
+            <button id="addMemberCancel" class="btn">Cancel</button>
+            <button id="addMemberSubmit" class="btn primary">Add Selected</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(dialog);
+      
+      // Load friends
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/friends`);
+        const data = await response.json();
+        
+        const friendsListDiv = dialog.querySelector('#addMemberFriendsList');
+        
+        if (data.friends.length === 0) {
+          friendsListDiv.innerHTML = '<p class="meta">No friends to add. Add friends first!</p>';
+        } else {
+          // Get current league members to exclude them
+          let existingMemberIds = [];
+          try {
+            const leagueInfo = await api.getLeagueInfo(leagueId);
+            existingMemberIds = leagueInfo.member_ids || [];
+          } catch (error) {
+            console.error('Error getting league info:', error);
+            // Continue without filtering if we can't get league info
+          }
+          
+          const availableFriends = data.friends.filter(f => !existingMemberIds.includes(f.user_id));
+          
+          if (availableFriends.length === 0) {
+            friendsListDiv.innerHTML = '<p class="meta">All your friends are already in this league!</p>';
+          } else {
+            friendsListDiv.innerHTML = availableFriends.map(friend => `
+              <label class="inline" style="display:block; padding:8px; border-bottom:1px solid var(--border);">
+                <input type="checkbox" name="add_member" value="${friend.user_id}" /> 
+                ${friend.name} (@${friend.username})
+              </label>
+            `).join('');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading friends:', error);
+        dialog.querySelector('#addMemberFriendsList').innerHTML = 
+          '<p style="color:#ef4444;">Failed to load friends</p>';
+      }
+      
+      // Show dialog
+      dialog.showModal();
+      
+      // Cancel button
+      dialog.querySelector('#addMemberCancel').addEventListener('click', () => {
+        dialog.close();
+        document.body.removeChild(dialog);
+      }, { once: true });
+      
+      // Submit button
+      dialog.querySelector('#addMemberSubmit').addEventListener('click', async () => {
+        const selected = Array.from(dialog.querySelectorAll('input[name="add_member"]:checked'))
+          .map(cb => cb.value);
+        
+        if (selected.length === 0) {
+          alert('Please select at least one friend to add');
+          return;
+        }
+        
+        try {
+          const access_token = await getAccessToken();
+          
+          // Add each selected member
+          let successCount = 0;
+          let errorCount = 0;
+          
+          for (const userId of selected) {
+            try {
+              const response = await fetch(`${BACKEND_URL}/leaderboard/add_member`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  access_token,
+                  leaderboard_id: leagueId,
+                  user_id: userId
+                })
+              });
+              
+              if (response.ok) {
+                successCount++;
+              } else {
+                const error = await response.json();
+                console.error(`Failed to add ${userId}:`, error);
+                errorCount++;
+              }
+            } catch (error) {
+              console.error(`Error adding ${userId}:`, error);
+              errorCount++;
+            }
+          }
+          
+          if (successCount > 0) {
+            alert(`Successfully added ${successCount} member(s)${errorCount > 0 ? ` (${errorCount} failed)` : ''}!`);
+            dialog.close();
+            document.body.removeChild(dialog);
+            renderLeagues(); // Refresh league list
+          } else {
+            alert(`Failed to add members. Please try again.`);
+          }
+        } catch (error) {
+          console.error('Error adding members:', error);
+          alert('Failed to add members. Please try again.');
+        }
+      }, { once: true });
     };
 
     // Initialize
